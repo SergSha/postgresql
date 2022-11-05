@@ -39,6 +39,12 @@ MACHINES = {
     :ip => '192.168.50.11',
     :mem => '1048'
   }
+  :backup => {
+    :box_name => "centos/7",
+    :vm_name => "backup",
+    :ip => '192.168.50.12',
+    :mem => '1048'
+  }
 }
 Vagrant.configure("2") do |config|
   MACHINES.each do |boxname, boxconfig|
@@ -49,7 +55,7 @@ Vagrant.configure("2") do |config|
       box.vm.provider :virtualbox do |vb|
         vb.customize ["modifyvm", :id, "--memory", boxconfig[:mem]]
       end
-#      if boxconfig[:vm_name] == "replica"
+#      if boxconfig[:vm_name] == "backup"
 #        box.vm.provision "ansible" do |ansible|
 #          ansible.playbook = "ansible/playbook.yml"
 #          ansible.inventory_path = "ansible/hosts"
