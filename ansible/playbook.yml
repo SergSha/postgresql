@@ -1,0 +1,7 @@
+---
+- name: PostgreSQL | Install and configure replication
+  hosts: all
+  become: true
+
+  roles:
+    - { role: postgresql, when: ansible_system == 'Linux' }
