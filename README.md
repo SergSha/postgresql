@@ -86,7 +86,7 @@ VM, run `vagrant status NAME`.
 [vagrant@master ~]$ <b>sudo -i</b>
 [root@master ~]#</pre>
 
-<p>Подключаем Percona репозиторий последней версии:</p>
+<p>Подключаем репозиторий ... последней версии:</p>
 
 
 
