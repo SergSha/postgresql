@@ -13,7 +13,7 @@ MACHINES = {
     :vm_name => "replica",
     :ip => '192.168.50.11',
     :mem => '1048'
-  }
+  },
   :backup => {
     :box_name => "centos/7",
     :vm_name => "backup",
