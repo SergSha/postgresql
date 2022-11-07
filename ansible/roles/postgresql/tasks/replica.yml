@@ -2,18 +2,28 @@
 # tasks file for postgresql
 
 - name: replica | Remove work directory
-    file: 
-      path: /var/lib/pgsql/14/data/
-      state: absent
+  file: 
+    path: /var/lib/pgsql/14/data/
+    state: absent
     
-  - name: replica | Create basebackup
-    expect: 
-      command: sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W
-      responses: 
-        '.*Password.*': "psql@Otus1234"
+- name: replica | Create basebackup
+  command: pg_basebackup -h {{ master_ip }} -R -D {{ pg_data }} -U {{ pg_user }}
+  become: yes
+  become_user: "{{ pg_user }}"
+  ignore_errors: yes
     
-  - name: replica | Start postgresql service
-    systemd:
-      name: postgresql-14
-      enabled: yes
-      state: restarted
+- name: replica | Start postgresql service
+  service:
+    name: postgresql-14
+    state: restarted
+    enabled: yes
+
+- name: replica | Get values from table cars of database replica
+  command: psql -d replica -c "SELECT * FROM cars;"
+  become: yes
+  become_user: "{{ pg_user }}"
+  ignore_errors: yes
+  register: view_table_cars
+
+- name: replica | Echo values from table cars of database replica
+  debug: msg="{{ view_table_cars.stdout_lines }}"

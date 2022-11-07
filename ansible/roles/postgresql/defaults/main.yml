@@ -1,2 +1,12 @@
 ---
 # defaults file for postgresql
+
+master_ip: '192.168.50.10'
+replica_ip: '192.168.50.11'
+backup_ip: '192.168.50.12'
+pg_dir: '/var/lib/pgsql'
+pg_data: '/var/lib/pgsql/14/data'
+pg_user: 'postgres'
+pg_user_password: 'psql@Otus1234'
+pg_port: 5432
+

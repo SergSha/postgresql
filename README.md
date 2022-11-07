@@ -346,8 +346,6 @@ Retype new password:
 passwd: all authentication tokens updated successfully.
 [root@replica ~]#</pre>
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 <pre>[root@master ~]# <b>sudo -u postgres psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"</b>
 could not change directory to "/root": Permission denied
 ALTER ROLE
@@ -377,7 +375,57 @@ postgres=#</pre>
 
 <p>Как мы видим, таблица пустая.</p>
 
-<p>Подключимся к созданной базе replica:</p>
+<p>Выводим список имеющихся баз данных:</p>
+
+<pre>postgres=# <b>\l</b>
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
+es
+-----------+----------+----------+-------------+-------------+------------------
+-----
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+(3 rows)
+
+postgres=#</pre>
+
+<p>Создадим базу данных replica:</p>
+
+<pre>postgres=# <b>create database replica;</b>
+CREATE DATABASE
+postgres=#</pre>
+
+<p>Выводим ещё раз список имеющихся баз данных:</p>
+
+<pre>postgres=# <b>\l</b>
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
+es
+-----------+----------+----------+-------------+-------------+------------------
+-----
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+ <b>replica</b>   | <b>postgres</b> | <b>UTF8</b>     | <b>en_US.UTF-8</b> | <b>en_US.UTF-8</b> | 
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+(4 rows)
+
+postgres=#</pre>
+
+<p>Как мы видим, что добавилась новая база данных replica.<br />
+Подключимся к созданной базе replica:</p>
 
 <pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
@@ -385,22 +433,22 @@ replica=#</pre>
 
 <p>Создадим таблицу t с полем t в формате int:</p>
 
-<pre>replica=# <b>create table t (t int);</b>
+<pre>replica=# <b>replica=# create table cars (id int,name varchar);</b>
 CREATE TABLE
 replica=#</pre>
 
-<p>В эту таблицу добавим запись t=0:</p>
+<p>В эту таблицу добавим запись:</p>
 
-<pre>replica=# <b>insert into t values(0);</b>
+<pre>replica=# <b>insert into cars(id,name) values(1,'Niva');</b>
 INSERT 0 1
 replica=#</pre>
 
-<p>Убедимся, что в таблице t появилась новая запись:</p>
+<p>Убедимся, что в таблице cars появилась новая запись:</p>
 
-<pre>replica=# <b>select * from t;</b>
- t 
----
- 0
+<pre>replica=# <b>select * from cars;</b>
+ id | name 
+----+------
+  1 | Niva
 (1 row)
 
 replica=#</pre>
@@ -511,36 +559,36 @@ postgres=#</pre>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
-<p>Выводим данные из таблицы t:</p>
+<p>Выводим данные из таблицы cars:</p>
 
-<pre>replica=# <b>select * from t;</b>
- t
----
- 0
+<pre>replica=# <b>select * from cars;</b>
+ id | name 
+----+------
+  1 | Niva
 (1 row)
 
 replica=#</pre>
 
-<p>На сервере master в таблице t добавим ещё одну запись:</p>
+<p>На сервере master в таблице cars добавим ещё одну запись:</p>
 
-<pre>replica=# <b>insert into t values(1);</b>
+<pre>replica=# <b>insert into cars(id,name) values(2,'Lada');</b>
 INSERT 0 1
-replica=# <b>select * from t;</b>
- t
----
- 0
- 1
+replica=# <b>select * from cars;</b>
+ id | name 
+----+------
+  1 | Niva
+  2 | Lada
 (2 rows)
 
 replica=#</pre>
 
 <p>Убедимся, что на сервере replica внеслись изменения:</p>
 
-<pre>replica=# <b>select * from t;</b>
- t
----
- 0
- 1
+<pre>replica=# <b>select * from cars;</b>
+ id | name 
+----+------
+  1 | Niva
+  2 | Lada
 (2 rows)
 
 replica=#</pre>
