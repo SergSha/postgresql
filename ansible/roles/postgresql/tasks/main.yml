@@ -2,14 +2,12 @@
 # tasks file for postgresql
 
 - name: Install PostgreSQL repo
-  yum: 
-    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-    state: latest
-    update_cache: true
+  command: yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 
-- name: Install postgresql14-server
+- name: Install postgresql14-server packages
   yum:
-    name: postgresql14-server
+    name: 
+    - postgresql14-server
     state: present
     update_cache: true
 
@@ -21,6 +19,6 @@
   include_tasks: replica.yml
   when: '"replica" in ansible_hostname'
 
-- name: Include replica server tasks
+- name: Include backup server tasks
   include_tasks: backup.yml
   when: '"backup" in ansible_hostname'

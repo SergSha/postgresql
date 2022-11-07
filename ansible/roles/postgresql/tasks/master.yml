@@ -4,17 +4,29 @@
 - name: master | Initialization postgresql database
   command: postgresql-14-setup initdb
 
+#listen_addresses = 'localhost'         # what IP address(es) to listen on;
 - name: master | Edit postgresql.conf
   lineinfile:
     path: /var/lib/pgsql/14/data/postgresql.conf
-    regexp: '^(.*)#listen_addresses = 'localhost'(.*)$'
-    line: '\1listen_addresses = '*'\3'
+    regexp: '^(.*)#listen_addresses = \'localhost\'(.*)$'
+    line: '\1listen_addresses = \'\*\'\3'
     backrefs: yes
+  tags:
+  - pg_conf
 
-- name: master | Edit pg_hba.conf
+#host    all             all             127.0.0.1/32            scram-sha-256
+- name: master | Edit pg_hba.conf 1
   lineinfile:
     path: /var/lib/pgsql/14/data/pg_hba.conf
-    regexp: '^(.*)host    all             all             0.0.0.0/00            scram-sha-256(.*)$'
+    regexp: '^(.*)host    all             all             127.0.0.1/32            scram-sha-256(.*)$'
     line: '\1host    all             all             0.0.0.0/00            scram-sha-256\3'
+    backrefs: yes
+
+#host    replication     all             127.0.0.1/32            scram-sha-256
+- name: master | Edit pg_hba.conf 2
+  lineinfile:
+    path: /var/lib/pgsql/14/data/pg_hba.conf
+    regexp: '^(.*)host    replication     all             127.0.0.1/32            scram-sha-256(.*)$'
+    line: '\1host    replication     all             0.0.0.0/00            scram-sha-256\3'
     backrefs: yes
 

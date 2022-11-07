@@ -103,7 +103,7 @@ Installed:
 Complete!
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# ls -l /etc/yum.repos.d/
+<pre>[root@master ~]# <b>ls -l /etc/yum.repos.d/</b>
 total 48
 -rw-r--r--. 1 root root  1664 Apr  7  2020 CentOS-Base.repo
 -rw-r--r--. 1 root root  1309 Apr  7  2020 CentOS-CR.repo
@@ -118,7 +118,7 @@ total 48
 
 <p>Устанавливаем postgresql14-server:</p>
 
-<pre>[root@master ~]# yum install -y postgresql14-server
+<pre>[root@master ~]# <b>yum install -y postgresql14-server</b>
 ...
 Installed:
   postgresql14-server.x86_64 0:14.5-1PGDG.rhel7
@@ -131,18 +131,18 @@ Complete!
 
 <p>Инициализируем базы:</p>
 
-<pre>[root@master ~]# postgresql-14-setup initdb
+<pre>[root@master ~]# <b>postgresql-14-setup initdb</b>
 Initializing database ... OK
 
 [root@master ~]#</pre>
 
 <p>Запускаем сервис postresql:</p>
 
-<pre>[root@master ~]# systemctl enable postgresql-14 --now
+<pre>[root@master ~]# <b>systemctl enable postgresql-14 --now</b>
 Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.service to /usr/lib/systemd/system/postgresql-14.service.
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# systemctl status postgresql-14
+<pre>[root@master ~]# <b>systemctl status postgresql-14</b>
 ● postgresql-14.service - PostgreSQL 14 database server
    Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
    Active: active (running) since Sun 2022-11-06 10:49:43 UTC; 32s ago
@@ -168,7 +168,7 @@ Hint: Some lines were ellipsized, use -l to show in full.
 
 <p>Задаем пароль для пользователя postgres:</p>
 
-<pre>[root@master ~]# passwd postgres             # 'psql@Otus1234'
+<pre>[root@master ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
 New password: 
 Retype new password: 
@@ -177,12 +177,12 @@ passwd: all authentication tokens updated successfully.
 
 <p>Заходим в систему под данной учетной записью:</p>
 
-<pre>[root@master ~]# su - postgres
+<pre>[root@master ~]# <b>su - postgres</b>
 -bash-4.2$</pre>
 
 <p>Подключаемся к базе:</p>
 
-<pre>-bash-4.2$ psql
+<pre>-bash-4.2$ <b>psql</b>
 psql (14.5)
 Type "help" for help.
 
@@ -190,7 +190,7 @@ postgres=#</pre>
 
 <p>Делаем тестовый запрос на получение списка таблиц:</p>
 
-<pre>postgres=# \dt *
+<pre>postgres=# <b>\dt *</b>
                     List of relations
    Schema   |          Name           | Type  |  Owner
 ------------+-------------------------+-------+----------
@@ -204,25 +204,25 @@ postgres=#</pre>
 
 <p>Чтобы выйти из оболочки psql:</p>
 
-<pre>postgres=# \q
+<pre>postgres=# <b>\q</b>
 -bash-4.2$</pre>
 
 <p>Отключиться от системы пользователем postgres:</p>
 
-<pre>-bash-4.2$ exit
+<pre>-bash-4.2$ <b>exit</b>
 logout
 [root@master ~]#</pre>
 
 <p>Снова подключаемся к базе под пользователем postgres:</p>
 
-<pre>[root@master ~]# sudo -u postgres psql
+<pre>[root@master ~]# <b>sudo -u postgres psql</b>
 could not change directory to "/root": Permission denied
 psql (14.5)
 Type "help" for help.
 
 postgres=#</pre>
 
-<pre>postgres=# select pg_is_in_recovery();
+<pre>postgres=# <b>select pg_is_in_recovery();</b>
  pg_is_in_recovery 
 -------------------
  f
@@ -232,7 +232,7 @@ postgres=#</pre>
 
 <p>Информация про слоты репликации:</p>
 
-<pre>postgres=# select * from pg_stat_replication;
+<pre>postgres=# <b>select * from pg_stat_replication;</b>
  pid | usesysid | usename | application_name | client_addr | client_hostname | client_p
 ort | backend_start | backend_xmin | state | sent_lsn | write_lsn | flush_lsn | replay_
 lsn | write_lag | flush_lag | replay_lag | sync_priority | sync_state | reply_time 
@@ -245,13 +245,13 @@ postgres=#</pre>
 
 <p>Создадим базу replica:</p>
 
-<pre>postgres=# create database replica;
+<pre>postgres=# <b>create database replica;</b>
 CREATE DATABASE
 postgres=#</pre>
 
 <p>Выводим список баз:</p>
 
-<pre>postgres=# \l
+<pre>postgres=# <b>\l</b>
                                   List of databases
    Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
 -----------+----------+----------+-------------+-------------+-----------------------
@@ -267,7 +267,7 @@ postgres=#</pre>
 
 <p>Чтобы подключиться к базе replica:</p>
 
-<pre>postgres=# \c replica 
+<pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
 replica=# \q
 [root@master ~]#</pre>
@@ -276,7 +276,7 @@ replica=# \q
 <p>По умолчанию, сервер баз данных postresql разрешает подключение только с локального компьютера.<br />
 Для начала посмотрим путь расположения конфигурационного файла postgresql.conf:</p>
 
-<pre>[root@master ~]# su - postgres -c "psql -c 'SHOW config_file;'"
+<pre>[root@master ~]# <b>su - postgres -c "psql -c 'SHOW config_file;'"</b>
               config_file               
 ----------------------------------------
  /var/lib/pgsql/14/data/postgresql.conf
@@ -286,7 +286,7 @@ replica=# \q
 
 <p>Открываем на редактирование основной файл конфигурации postgresql.conf:</p>
 
-<pre>[root@master ~]# vi /var/lib/pgsql/14/data/postgresql.conf</pre>
+<pre>[root@master ~]# <b>vi /var/lib/pgsql/14/data/postgresql.conf</b></pre>
 
 <p>Находим и редактируем следующие строки:</p>
 
@@ -298,16 +298,9 @@ replica=# \q
 
 <p>Открываем на редактирование следующий конфигурационный файл pg_hba.conf:</p>
 
-<pre>[root@master ~]# vi /var/lib/pgsql/14/data/pg_hba.conf</pre>
+<pre>[root@master ~]# <b>vi /var/lib/pgsql/14/data/pg_hba.conf</b></pre>
 
 <p>Находим и редактируем следующие строки:</p>
-
-<pre># TYPE  DATABASE        USER            ADDRESS                 METHOD
-...
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            scram-sha-256</pre>
-
-<p>на:</p>
 
 <pre># TYPE  DATABASE        USER            ADDRESS                 METHOD
 
@@ -323,6 +316,7 @@ local   replication     all                                     peer
 <b>host    replication     all             127.0.0.1/32            scram-sha-256</b>
 host    replication     all             ::1/128                 scram-sha-256</pre>
 
+<p>на:</p>
 
 <pre># TYPE  DATABASE        USER            ADDRESS                 METHOD
 
@@ -340,12 +334,12 @@ host    replication     all             ::1/128                 scram-sha-256</p
 
 <p>Перезапускаем сервис postgresql:</p>
 
-<pre>[root@master ~]# systemctl restart postgresql-14
+<pre>[root@master ~]# <b>systemctl restart postgresql-14</b>
 [root@master ~]#</pre>
 
 <p>Снова заходим в postgres:</p>
 
-<pre>[root@master ~]# sudo -u postgres psql
+<pre>[root@master ~]# <b>sudo -u postgres psql</b>
 could not change directory to "/root": Permission denied
 psql (14.5)
 Type "help" for help.
@@ -354,7 +348,7 @@ postgres=#</pre>
 
 <p>Смотрим слот репликации:</p>
 
-<pre>postgres=# select * from pg_stat_replication;
+<pre>postgres=# <b>select * from pg_stat_replication;</b>
  pid | usesysid | usename | application_name | client_addr | client_hostname | client_p
 ort | backend_start | backend_xmin | state | sent_lsn | write_lsn | flush_lsn | replay_
 lsn | write_lag | flush_lag | replay_lag | sync_priority | sync_state | reply_time 
@@ -369,25 +363,25 @@ postgres=#</pre>
 
 <p>Подключимся к созданной базе replica:</p>
 
-<pre>postgres=# \c replica 
+<pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
 <p>Создадим таблицу t с полем t в формате int:</p>
 
-<pre>replica=# create table t (t int);
+<pre>replica=# <b>create table t (t int);</b>
 CREATE TABLE
 replica=#</pre>
 
 <p>В эту таблицу добавим запись t=0:</p>
 
-<pre>replica=# insert into t values(0);
+<pre>replica=# <b>insert into t values(0);</b>
 INSERT 0 1
 replica=#</pre>
 
 <p>Убедимся, что в таблице t появилась новая запись:</p>
 
-<pre>replica=# select * from t;
+<pre>replica=# <b>select * from t;</b>
  t 
 ---
  0
@@ -397,24 +391,24 @@ replica=#</pre>
 
 <p>В отдельном окне терминала подключимся к серверу replica и зайдём под пользователем root:</p>
 
-<pre>[user@localhost postgresql]$ vagrant ssh replica
-[vagrant@replica ~]$ sudo -i
+<pre>[user@localhost postgresql]$ <b>vagrant ssh replica</b>
+[vagrant@replica ~]$ <b>sudo -i</b>
 [root@replica ~]#</pre>
 
 <p>Также, как и на сервере master, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
 
 <pre>[root@replica ~]# <b>yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm</b></pre>
 
-<pre>[root@replica ~]# yum install -y postgresql14-server</pre>
+<pre>[root@replica ~]# <b>yum install -y postgresql14-server</b></pre>
 
 <p>Удалим директорий postgresql:</p>
 
-<pre>[root@replica ~]# rm -rf /var/lib/pgsql/14/data/</pre>
+<pre>[root@replica ~]# <b>rm -rf /var/lib/pgsql/14/data/</b></pre>
 
 
 !!!!!!!!!!!!!!!!!!!
 
-[root@master ~]# su - postgres
+[root@master ~]# <b>su - postgres</b>
 Last login: Sun Nov  6 12:07:49 UTC 2022 on pts/0
 -bash-4.2$ psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"
 ALTER ROLE
@@ -436,15 +430,15 @@ logout
 
 <p>Инициализируем базы:</p>
 
-<pre>[root@replica ~]# postgresql-14-setup initdb</pre>
+<pre>[root@replica ~]# <b>postgresql-14-setup initdb</b></pre>
 
 <p>Запускаем сервис postresql:</p>
 
-<pre>[root@replica ~]# systemctl enable postgresql-14 --now
+<pre>[root@replica ~]# <b>systemctl enable postgresql-14 --now</b>
 Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.service to /usr/lib/systemd/system/postgresql-14.service.
 [root@replica ~]#</pre>
 
-<pre>[root@replica ~]# systemctl status postgresql-14
+<pre>[root@replica ~]# <b>systemctl status postgresql-14</b>
 ● postgresql-14.service - PostgreSQL 14 database server
    Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
    Active: active (running) since Sun 2022-11-06 16:49:35 UTC; 21s ago
@@ -470,7 +464,7 @@ Hint: Some lines were ellipsized, use -l to show in full.
 
 <p>Задаем пароль для пользователя postgres:</p>
 
-<pre>[root@replica ~]# passwd postgres             # 'psql@Otus1234'
+<pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
 New password: 
 Retype new password: 
@@ -479,12 +473,12 @@ passwd: all authentication tokens updated successfully.
 
 <p>Заходим в систему под данной учетной записью и подключаемся к базе:</p>
 
-<pre>[root@master ~]# sudo -u postgres psql
+<pre>[root@master ~]# <b>sudo -u postgres psql</b>
 -bash-4.2$</pre>
 
 <p>Подключаемся к базе:</p>
 
-<pre>-bash-4.2$ psql
+<pre>-bash-4.2$ <b>psql</b>
 psql (14.5)
 Type "help" for help.
 
