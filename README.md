@@ -348,7 +348,7 @@ passwd: all authentication tokens updated successfully.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-<pre>[root@master ~]# sudo -u postgres psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"
+<pre>[root@master ~]# <b>sudo -u postgres psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"</b>
 could not change directory to "/root": Permission denied
 ALTER ROLE
 [root@master ~]#</pre>
