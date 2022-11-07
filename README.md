@@ -337,6 +337,22 @@ host    replication     all             ::1/128                 scram-sha-256</p
 <pre>[root@master ~]# <b>systemctl restart postgresql-14</b>
 [root@master ~]#</pre>
 
+<p>Задаем пароль для пользователя postgres:</p>
+
+<pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
+Changing password for user postgres.
+New password: 
+Retype new password: 
+passwd: all authentication tokens updated successfully.
+[root@replica ~]#</pre>
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+<pre>[root@master ~]# sudo -u postgres psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"
+could not change directory to "/root": Permission denied
+ALTER ROLE
+[root@master ~]#</pre>
+
 <p>Снова заходим в postgres:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql</b>
@@ -389,6 +405,10 @@ replica=#</pre>
 
 replica=#</pre>
 
+
+
+<h4>Сервер replica</h4>
+
 <p>В отдельном окне терминала подключимся к серверу replica и зайдём под пользователем root:</p>
 
 <pre>[user@localhost postgresql]$ <b>vagrant ssh replica</b>
@@ -401,36 +421,25 @@ replica=#</pre>
 
 <pre>[root@replica ~]# <b>yum install -y postgresql14-server</b></pre>
 
+<p>Задаем пароль для пользователя postgres:</p>
+
+<pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
+Changing password for user postgres.
+New password: 
+Retype new password: 
+passwd: all authentication tokens updated successfully.
+[root@replica ~]#</pre>
+
 <p>Удалим директорий postgresql:</p>
 
 <pre>[root@replica ~]# <b>rm -rf /var/lib/pgsql/14/data/</b></pre>
 
+<p>Подключаемся к базе данных на сервере master:</p>
 
-!!!!!!!!!!!!!!!!!!!
-
-[root@master ~]# <b>su - postgres</b>
-Last login: Sun Nov  6 12:07:49 UTC 2022 on pts/0
--bash-4.2$ psql -c "ALTER ROLE postgres PASSWORD 'psql@Otus1234'"
-ALTER ROLE
--bash-4.2$ exit
-logout
-[root@master ~]# 
-
-!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-
-
-
-
-
-
-<p>Инициализируем базы:</p>
-
-<pre>[root@replica ~]# <b>postgresql-14-setup initdb</b></pre>
+<pre>[root@replica ~]# <b>sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W</b>
+could not change directory to "/root": Permission denied
+Password:
+[root@replica ~]#</pre>
 
 <p>Запускаем сервис postresql:</p>
 
@@ -441,52 +450,102 @@ Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.s
 <pre>[root@replica ~]# <b>systemctl status postgresql-14</b>
 ● postgresql-14.service - PostgreSQL 14 database server
    Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
-   Active: active (running) since Sun 2022-11-06 16:49:35 UTC; 21s ago
+   Active: active (running) since Mon 2022-11-07 12:22:52 UTC; 32s ago
      Docs: https://www.postgresql.org/docs/14/static/
-  Process: 22281 ExecStartPre=/usr/pgsql-14/bin/postgresql-14-check-db-dir ${PGDATA} (code=exited, status=0/SUCCESS)
- Main PID: 22286 (postmaster)
+  Process: 3757 ExecStartPre=/usr/pgsql-14/bin/postgresql-14-check-db-dir ${PGDATA} (code=exited, status=0/SUCCESS)
+ Main PID: 3762 (postmaster)
    CGroup: /system.slice/postgresql-14.service
-           ├─22286 /usr/pgsql-14/bin/postmaster -D /var/lib/pgsql/14/data/
-           ├─22288 postgres: logger 
-           ├─22290 postgres: checkpointer 
-           ├─22291 postgres: background writer 
-           ├─22292 postgres: walwriter 
-           ├─22293 postgres: autovacuum launcher 
-           ├─22294 postgres: stats collector 
-           └─22295 postgres: logical replication launcher 
+           ├─3762 /usr/pgsql-14/bin/postmaster -D /var/lib/pgsql/14/data/
+           ├─3764 postgres: logger
+           ├─3765 postgres: startup recovering 000000010000000000000003
+           ├─3766 postgres: checkpointer
+           ├─3767 postgres: background writer
+           ├─3768 postgres: stats collector
+           └─3769 postgres: walreceiver streaming 0/3000148
 
-Nov 06 16:49:35 replica systemd[1]: Starting PostgreSQL 14 database server...
-Nov 06 16:49:35 replica postmaster[22286]: 2022-11-06 16:49:35.798 UTC [2228...s
-Nov 06 16:49:35 replica postmaster[22286]: 2022-11-06 16:49:35.798 UTC [2228....
-Nov 06 16:49:35 replica systemd[1]: Started PostgreSQL 14 database server.
+Nov 07 12:22:48 replica systemd[1]: Starting PostgreSQL 14 database server...
+Nov 07 12:22:48 replica postmaster[3762]: 2022-11-07 12:22:48.632 UTC [3762]...s
+Nov 07 12:22:48 replica postmaster[3762]: 2022-11-07 12:22:48.632 UTC [3762]....
+Nov 07 12:22:52 replica systemd[1]: Started PostgreSQL 14 database server.
 Hint: Some lines were ellipsized, use -l to show in full.
 [root@replica ~]#</pre>
 
-<p>Задаем пароль для пользователя postgres:</p>
 
-<pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
-Changing password for user postgres.
-New password: 
-Retype new password: 
-passwd: all authentication tokens updated successfully.
-[root@replica ~]#</pre>
+
+<h4>Проверка работы репликации</h4>
 
 <p>Заходим в систему под данной учетной записью и подключаемся к базе:</p>
 
-<pre>[root@master ~]# <b>sudo -u postgres psql</b>
--bash-4.2$</pre>
-
-<p>Подключаемся к базе:</p>
-
-<pre>-bash-4.2$ <b>psql</b>
+<pre>[root@replica ~]# <b>sudo -u postgres psql</b>
+could not change directory to "/root": Permission denied
 psql (14.5)
 Type "help" for help.
 
 postgres=#</pre>
 
+<p>Выводим список баз данных:</p>
 
+<pre>postgres=# <b>\l</b>
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
+es
+-----------+----------+----------+-------------+-------------+------------------
+-----
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+ <b>replica</b>   | <b>postgres</b> | <b>UTF8</b>     | <b>en_US.UTF-8</b> | <b>en_US.UTF-8</b> |
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+(4 rows)
 
+postgres=#</pre>
 
+<p>Подключаемся к базе данных replica:</p>
+
+<pre>postgres=# <b>\c replica</b>
+You are now connected to database "replica" as user "postgres".
+replica=#</pre>
+
+<p>Выводим данные из таблицы t:</p>
+
+<pre>replica=# <b>select * from t;</b>
+ t
+---
+ 0
+(1 row)
+
+replica=#</pre>
+
+<p>На сервере master в таблице t добавим ещё одну запись:</p>
+
+<pre>replica=# <b>insert into t values(1);</b>
+INSERT 0 1
+replica=# <b>select * from t;</b>
+ t
+---
+ 0
+ 1
+(2 rows)
+
+replica=#</pre>
+
+<p>Убедимся, что на сервере replica внеслись изменения:</p>
+
+<pre>replica=# <b>select * from t;</b>
+ t
+---
+ 0
+ 1
+(2 rows)
+
+replica=#</pre>
+
+<p>Как мы видим, что на сервере replica в таблице t также появилась вторая запись.</p>
 
 
 

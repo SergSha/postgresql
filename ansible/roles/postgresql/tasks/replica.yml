@@ -1,3 +1,19 @@
 ---
 # tasks file for postgresql
 
+- name: replica | Remove work directory
+    file: 
+      path: /var/lib/pgsql/14/data/
+      state: absent
+    
+  - name: replica | Create basebackup
+    expect: 
+      command: sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W
+      responses: 
+        '.*Password.*': "psql@Otus1234"
+    
+  - name: replica | Start postgresql service
+    systemd:
+      name: postgresql-14
+      enabled: yes
+      state: restarted
