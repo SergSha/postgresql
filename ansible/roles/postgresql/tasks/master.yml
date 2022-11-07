@@ -1,0 +1,20 @@
+---
+# tasks file for postgresql
+
+- name: master | Initialization postgresql database
+  command: postgresql-14-setup initdb
+
+- name: master | Edit postgresql.conf
+  lineinfile:
+    path: /var/lib/pgsql/14/data/postgresql.conf
+    regexp: '^(.*)#listen_addresses = 'localhost'(.*)$'
+    line: '\1listen_addresses = '*'\3'
+    backrefs: yes
+
+- name: master | Edit pg_hba.conf
+  lineinfile:
+    path: /var/lib/pgsql/14/data/pg_hba.conf
+    regexp: '^(.*)host    all             all             0.0.0.0/00            scram-sha-256(.*)$'
+    line: '\1host    all             all             0.0.0.0/00            scram-sha-256\3'
+    backrefs: yes
+
