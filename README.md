@@ -85,6 +85,8 @@ above with their current state. For more information about a specific
 VM, run `vagrant status NAME`.
 [user@localhost postgresql]$</pre>
 
+<h4>Физическая репликация</h4>
+
 <h4>Сервер master</h4>
 
 <p>Подключаемся по ssh к серверу master и зайдём с правами root:</p>
@@ -593,14 +595,187 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>Как мы видим, что на сервере replica в таблице t также появилась вторая запись.</p>
+<p>Как мы видим, что на сервере replica в таблице cars также появилась вторая запись.</p>
 
+<p>Теперь попробуем добавить запись в таблицу cars на самом сервере replica:</p>
 
+<pre>replica=# <b>INSERT INTO cars(id,name) VALUES(3,'Volga');</b>
+ERROR:  cannot execute INSERT in a read-only transaction
+replica=#</pre>
 
+<p>Как видим, на сервере replica не разрешает запись.</p>
 
+<h4>Логическая репликация</h4>
 
+<p>Перенастроим наш сервер master на логическую репликацию. Для этого в конфиг файле postgesql.conf:</p>
 
+<pre>[root@master ~]# vi /var/lib/pgsql/14/data/postgresql.conf</pre>
 
+<p>внесём изменение в строке:</p>
+
+<pre>#wal_level = replica                    # minimal, replica, or logical</pre>
+
+<p>на:</p>
+
+<pre>wal_level = logical                    # minimal, replica, or logical</pre>
+
+<p>Перезапускаем postgresql сервис:</p>
+
+<pre>[root@master ~]# systemctl restart postgresql-14
+[root@master ~]#</pre>
+
+<p>Снова подключимся к базе данных replica:</p>
+
+<pre>[root@master ~]# sudo -u postgres psql
+could not change directory to "/root": Permission denied
+psql (14.5)
+Type "help" for help.
+
+postgres=# \c replica
+You are now connected to database "replica" as user "postgres".
+replica=#</pre>
+
+<p>Добавим новую таблицу cities:</p>
+
+<pre>replica=# CREATE TABLE cities(id INT,name VARCHAR);
+CREATE TABLE
+replica=#</pre>
+
+<p>Создаём публикацию для таблицы cities:</p>
+
+<pre>replica=# CREATE PUBLICATION cities_pub FOR TABLE cities;
+WARNING:  wal_level is insufficient to publish logical changes
+HINT:  Set wal_level to logical before creating subscriptions.
+CREATE PUBLICATION
+replica=#</pre>
+
+<p>Смотрим, что получилось:</p>
+
+<pre>replica=# select * from pg_publication;
+  oid  |  pubname   | pubowner | puballtables | pubinsert | pubupdate | pubdelet
+e | pubtruncate | pubviaroot
+-------+------------+----------+--------------+-----------+-----------+---------
+--+-------------+------------
+ 16395 | cities_pub |       10 | f            | t         | t         | t
+  | t           | f
+(1 row)
+
+replica=#</pre>
+
+<pre>replica=# select * from pg_publication_tables;
+  pubname   | schemaname | tablename
+------------+------------+-----------
+ cities_pub | public     | cities
+(1 row)
+
+replica=#</pre>
+
+<p>Добавим запись в таблицу cities:</p>
+
+<pre>replica=# INSERT INTO cities(id,name) VALUES(1,'Moscow');
+INSERT 0 1
+replica=# SELECT * FROM cities;
+ id |  name
+----+--------
+  1 | Moscow
+(1 row)
+
+replica=#</pre>
+
+<p>На сервере replica перезапустим postgresql сервис:</p>
+
+<pre>[root@replica ~]# sudo -u postgres /usr/pgsql-14/bin/pg_ctl -D /var/lib/pgsql/14/data promote
+could not change directory to "/root": Permission denied
+waiting for server to promote..... done
+server promoted
+[root@replica ~]#</pre>
+
+<pre>[root@replica ~]# systemctl restart postgresql-14
+[root@replica ~]#</pre>
+
+<p>Создадим подписку к базе данных по порту, пользователю и паролю:</p>
+
+<pre>replica=# CREATE SUBSCRIPTION cities_sub
+replica-# CONNECTION 'host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica'
+replica-# PUBLICATION cities_pub;
+NOTICE:  created replication slot "cities_sub" on publisher
+CREATE SUBSCRIPTION
+replica=#</pre>
+
+<pre>replica=# SELECT * FROM PG_REPLICATION_SLOTS;
+ slot_name | plugin | slot_type | datoid | database | temporary | active | activ
+e_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn | wal_status | s
+afe_wal_size | two_phase
+-----------+--------+-----------+--------+----------+-----------+--------+------
+------+------+--------------+-------------+---------------------+------------+--
+-------------+-----------
+(0 rows)
+
+replica=#</pre>
+
+<pre>replica=# SELECT * FROM PG_SUBSCRIPTION;
+  oid  | subdbid |  subname   | subowner | subenabled | subbinary | substream |
+                                  subconninfo
+ | subslotname | subsynccommit | subpublications
+-------+---------+------------+----------+------------+-----------+-----------+-
+--------------------------------------------------------------------------------
+-+-------------+---------------+-----------------
+ 24584 |   16384 | cities_sub |       10 | t          | f         | f         |
+host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica
+ | cities_sub  | off           | {cities_pub}
+(1 row)
+
+replica=#</pre>
+
+<p>Смотрим записи в таблице cities:</p>
+
+<pre>replica=# SELECT * FROM cities;
+ id |  name
+----+--------
+  1 | Moscow
+(1 row)
+
+replica=#</pre>
+
+<pre>replica=# SELECT * FROM PG_STAT_SUBSCRIPTION;
+ subid |  subname   |  pid  | relid | received_lsn |      last_msg_send_time
+   |     last_msg_receipt_time     | latest_end_lsn |        latest_end_time
+
+-------+------------+-------+-------+--------------+----------------------------
+---+-------------------------------+----------------+---------------------------
+----
+ 24584 | cities_sub | 22962 |       | 0/5020750    | 2022-11-08 09:09:30.787324+
+00 | 2022-11-08 09:09:30.786033+00 | 0/5020750      | 2022-11-08 09:09:30.787324
++00
+(1 row)
+
+replica=#</pre>
+
+<p>Попробуем на сервере master добавить ещё одну запись в таблицу cities:</p>
+
+<pre>replica=# INSERT INTO cities(id,name) Values(2,'Madrid');
+INSERT 0 1
+replica=#</pre>
+
+<p>На сервере replica выводим данные таблицы cities:</p>
+
+<pre>replica=# SELECT * FROM cities;
+ id |  name
+----+--------
+  1 | Moscow
+  2 | Madrid
+(2 rows)
+
+replica=#</pre>
+
+<p>Как мы видим, при логической репликации данные на сервере replica также изменяются в соответствии с изменениями на сервере master.</p>
+
+<p>Чтобы отменить логическую репликацию, на сервере master нужно выполнить следующие команды:</p>
+
+<pre>DROP PUBLICATION cities_pub;</pre>
+
+<pre>vi /var/lib/pgsql/14/data/postgresql.conf
+#wal_level = replica                     # minimal, replica, or logical</pre>
 
 
 
