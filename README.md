@@ -433,7 +433,7 @@ postgres=#</pre>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
-<p>Создадим таблицу t с полем t в формате int:</p>
+<p>Создадим таблицу cars с полями id и name:</p>
 
 <pre>replica=# <b>replica=# create table cars (id int,name varchar);</b>
 CREATE TABLE
@@ -778,6 +778,188 @@ replica=#</pre>
 #wal_level = replica                     # minimal, replica, or logical</pre>
 
 
+
+<h4>Резервное копирование</h4>
+
+<p>В отдельном окне терминала подключимся к серверу backup и зайдём под пользователем root:</p>
+
+<pre>[user@localhost postgresql]$ <b>vagrant ssh backup</b>
+[vagrant@backup ~]$ <b>sudo -i</b>
+[root@backup ~]#</pre>
+
+<p>Также, как и на серверах master и replica, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
+
+<pre>[root@backup ~]# <b>yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm</b></pre>
+
+<pre>[root@backup ~]# <b>yum install -y postgresql14-server</b></pre>
+
+<p>Задаем пароль для пользователя postgres:</p>
+
+<pre>[root@backup ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
+Changing password for user postgres.
+New password: 
+Retype new password: 
+passwd: all authentication tokens updated successfully.
+[root@backup ~]#</pre>
+
+<p>Сначала также как и на сервере replica настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу master.</p>
+
+<p>Удалим директорий postgresql:</p>
+
+<pre>[root@backup ~]# rm -rf /var/lib/pgsql/14/data/
+[root@backup ~]#</pre>
+
+<p>Подключаемся к базе данных на сервере master:</p>
+
+<pre>[root@backup ~]# sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W
+could not change directory to "/root": Permission denied
+Password:
+[root@backup ~]#</pre>
+
+<p>Запускаем сервис postresql:</p>
+
+<pre>[root@backup ~]# systemctl enable postgresql-14 --now
+Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.service to /usr/lib/systemd/system/postgresql-14.service.
+[root@backup ~]#</pre>
+
+<pre>[root@backup ~]# systemctl status postgresql-14
+● postgresql-14.service - PostgreSQL 14 database server
+   Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
+   Active: active (running) since Wed 2022-11-09 09:31:52 UTC; 39s ago
+     Docs: https://www.postgresql.org/docs/14/static/
+  Process: 22483 ExecStartPre=/usr/pgsql-14/bin/postgresql-14-check-db-dir ${PGDATA} (code=exited, status=0/SUCCESS)
+ Main PID: 22488 (postmaster)
+   CGroup: /system.slice/postgresql-14.service
+           ├─22488 /usr/pgsql-14/bin/postmaster -D /var/lib/pgsql/14/data/
+           ├─22490 postgres: logger
+           ├─22491 postgres: startup recovering 000000010000000000000005
+           ├─22492 postgres: checkpointer
+           ├─22493 postgres: background writer
+           ├─22494 postgres: stats collector
+           └─22495 postgres: walreceiver streaming 0/5000060
+
+Nov 09 09:31:50 backup systemd[1]: Starting PostgreSQL 14 database server...
+Nov 09 09:31:50 backup postmaster[22488]: 2022-11-09 09:31:50.370 UTC [22488...s
+Nov 09 09:31:50 backup postmaster[22488]: 2022-11-09 09:31:50.370 UTC [22488....
+Nov 09 09:31:52 backup systemd[1]: Started PostgreSQL 14 database server.
+Hint: Some lines were ellipsized, use -l to show in full.
+[root@backup ~]#</pre>
+
+<p>На сервере master для теста создадим базу данных backup:</p>
+
+<pre>postgres=# CREATE DATABASE backup;
+CREATE DATABASE
+postgres=#</pre>
+
+<p>Подключаемся к базе данных backup:</p>
+
+<pre>postgres=# \c backup
+You are now connected to database "backup" as user "postgres".
+backup=#</pre>
+
+<pre>backup=# SELECT current_database();
+ current_database
+------------------
+ backup
+(1 row)
+
+backup=#</pre>
+
+<p>Создадим таблицу fruits с полями id, name и count:</p>
+
+<pre>backup=# CREATE TABLE fruits(id INT,name TEXT,count INT);
+CREATE TABLE
+backup=#</pre>
+
+<p>Вставим несколько записей:</p>
+
+<pre>backup=# INSERT INTO fruits(id,name,count) VALUES(1,'apple',7);
+INSERT 0 1
+backup=# INSERT INTO fruits(id,name,count) VALUES(2,'pear',3);
+INSERT 0 1
+backup=# INSERT INTO fruits(id,name,count) VALUES(3,'banana',2);
+INSERT 0 1
+backup=#</pre>
+
+<p>Проверим на сервере backup. <br />
+Выводим список баз:</p>
+
+<pre>postgres=# <b>\l</b>
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
+es
+-----------+----------+----------+-------------+-------------+------------------
+-----
+ <b>backup</b>    | <b>postgres</b> | <b>UTF8</b>     | <b>en_US.UTF-8</b> | <b>en_US.UTF-8</b> |
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+ replica   | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+(5 rows)
+
+postgres=#</pre>
+
+<p>Подключимся к базе данных backup:</p>
+
+<pre>postgres=# <b>\c backup</b>
+You are now connected to database "backup" as user "postgres".
+backup=#</pre>
+
+<p>Выводим таблицу backup:</p>
+
+<pre>backup=# <b>SELECT * FROM fruits;</b>
+ id |  name  | count
+----+--------+-------
+  1 | apple  |     7
+  2 | pear   |     3
+  3 | banana |     2
+(3 rows)
+
+backup=#</pre>
+
+<p>Создаём директорий /backup для резервного копирования БД postgresql:</p>
+
+<pre>[root@backup ~]# mkdir /backup
+[root@backup ~]# chown -R postgres: /backup/
+[root@backup ~]# ls -ld /backup/
+drwxr-xr-x. 2 postgres postgres 6 Nov  9 10:09 /backup/
+[root@backup ~]#</pre>
+
+<p>Скопируем данные таблицы fruits в csv файл:</p>
+
+<pre>backup=# COPY fruits TO '/backup/fruits.csv' CSV HEADER;
+COPY 3
+backup=#</pre>
+
+<pre>[root@backup ~]# ls -l /backup/fruits.csv
+-rw-r--r--. 1 postgres postgres 44 Nov  9 12:49 /backup/fruits.csv
+[root@backup ~]#</pre>
+
+<p>Содержимое файла fruits.csv:</p>
+
+<pre>[root@backup ~]# cat /backup/fruits.csv
+id,name,count
+1,apple,7
+2,pear,3
+3,banana,2
+[root@backup ~]#</pre>
+
+<p>Для восстановления таблицы из csv файла нужно ОБЯЗАТЕЛЬНО создать новую таблицу. <br />
+В нашем случае создадим таблицу fruits2. Создавать будем на сервере master, предварительно переместив csv файл:</p>
+
+<pre>backup=# CREATE TABLE fruits2(id INT,name TEXT,count INT);
+CREATE TABLE
+backup=#</pre>
+
+<p>Загрузим в эту таблицу данные из csv файла fruits.csv:</p>
+
+<pre></pre>
 
 
 
