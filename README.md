@@ -781,6 +781,150 @@ replica=#</pre>
 
 <h4>Резервное копирование</h4>
 
+<p>Для начала на сервере <b>master</b> создадим директорий /backup для резервного копирования БД postgresql:</p>
+
+<pre>[root@master ~]# mkdir /backup
+[root@master ~]# chown -R postgres: /backup/
+[root@master ~]# ls -ld /backup/
+drwxr-xr-x. 2 postgres postgres 6 Nov  9 10:09 /backup/
+[root@master ~]#</pre>
+
+<p>Затем на сервере же <b>master</b> для теста создадим базу данных backup:</p>
+
+<pre>postgres=# CREATE DATABASE backup;
+CREATE DATABASE
+postgres=#</pre>
+
+<p>Подключаемся к базе данных backup:</p>
+
+<pre>postgres=# \c backup
+You are now connected to database "backup" as user "postgres".
+backup=#</pre>
+
+<pre>backup=# SELECT current_database();
+ current_database
+------------------
+ backup
+(1 row)
+
+backup=#</pre>
+
+<p>Создадим таблицу fruits с полями id, name и count:</p>
+
+<pre>backup=# CREATE TABLE fruits(id INT,name TEXT,count INT);
+CREATE TABLE
+backup=#</pre>
+
+<p>Вставим несколько записей:</p>
+
+<pre>backup=# INSERT INTO fruits(id,name,count) VALUES(1,'apple',7);
+INSERT 0 1
+backup=# INSERT INTO fruits(id,name,count) VALUES(2,'pear',3);
+INSERT 0 1
+backup=# INSERT INTO fruits(id,name,count) VALUES(3,'banana',2);
+INSERT 0 1
+backup=#</pre>
+
+<p>Выводим список баз:</p>
+
+<pre>postgres=# <b>\l</b>
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
+es
+-----------+----------+----------+-------------+-------------+------------------
+-----
+ <b>backup</b>    | <b>postgres</b> | <b>UTF8</b>     | <b>en_US.UTF-8</b> | <b>en_US.UTF-8</b> |
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+ replica   | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
+    +
+           |          |          |             |             | postgres=CTc/post
+gres
+(5 rows)
+
+postgres=#</pre>
+
+<p>Подключимся к базе данных backup:</p>
+
+<pre>postgres=# <b>\c backup</b>
+You are now connected to database "backup" as user "postgres".
+backup=#</pre>
+
+<p>Выводим таблицу backup:</p>
+
+<pre>backup=# <b>SELECT * FROM fruits;</b>
+ id |  name  | count
+----+--------+-------
+  1 | apple  |     7
+  2 | pear   |     3
+  3 | banana |     2
+(3 rows)
+
+backup=#</pre>
+
+<p>Скопируем данные таблицы fruits в csv файл:</p>
+
+<pre>backup=# COPY fruits TO '/backup/fruits.csv' CSV HEADER;
+COPY 3
+backup=#</pre>
+
+<p>Выгруженный файл fruits.csv:</p>
+
+<pre>[root@master ~]# ls -l /backup/fruits.csv
+-rw-r--r--. 1 postgres postgres 44 Nov  9 12:49 /backup/fruits.csv
+[root@master ~]#</pre>
+
+<p>Содержимое файла fruits.csv:</p>
+
+<pre>[root@master ~]# cat /backup/fruits.csv
+id,name,count
+1,apple,7
+2,pear,3
+3,banana,2
+[root@master ~]#</pre>
+
+<p>Для восстановления таблицы из csv файла нужно ОБЯЗАТЕЛЬНО создать новую таблицу. <br />
+В нашем случае создадим таблицу fruits2. Создавать будем на сервере master, предварительно переместив csv файл:</p>
+
+<pre>backup=# CREATE TABLE fruits2(id INT,name TEXT,count INT);
+CREATE TABLE
+backup=#</pre>
+
+<p>Проверим, что создана пустая таблица fruits2:</p>
+
+<pre>backup=# SELECT * FROM fruits2;
+ id | name | count 
+----+------+-------
+(0 rows)
+
+backup=#</pre>
+
+<p>Загрузим в эту таблицу данные из csv файла fruits.csv:</p>
+
+<pre>backup=# COPY fruits2 FROM '/backup/fruits.csv' CSV HEADER;
+COPY 3
+backup=#</pre>
+
+<p>Проверим, что в таблицу fruits2 загрузились данные с файла fruits.csv:</p>
+
+<pre>backup=# SELECT * FROM fruits2;
+ id |  name  | count 
+----+--------+-------
+  1 | apple  |     7
+  2 | pear   |     3
+  3 | banana |     2
+(3 rows)
+
+backup=#</pre>
+
+<p>Как видим, нам удалось восстановить таблицу.</p>
+
+
+
 <p>В отдельном окне терминала подключимся к серверу backup и зайдём под пользователем root:</p>
 
 <pre>[user@localhost postgresql]$ <b>vagrant ssh backup</b>
@@ -845,121 +989,173 @@ Nov 09 09:31:52 backup systemd[1]: Started PostgreSQL 14 database server.
 Hint: Some lines were ellipsized, use -l to show in full.
 [root@backup ~]#</pre>
 
-<p>На сервере master для теста создадим базу данных backup:</p>
 
-<pre>postgres=# CREATE DATABASE backup;
-CREATE DATABASE
-postgres=#</pre>
 
-<p>Подключаемся к базе данных backup:</p>
-
-<pre>postgres=# \c backup
-You are now connected to database "backup" as user "postgres".
-backup=#</pre>
-
-<pre>backup=# SELECT current_database();
- current_database
-------------------
- backup
-(1 row)
-
-backup=#</pre>
-
-<p>Создадим таблицу fruits с полями id, name и count:</p>
-
-<pre>backup=# CREATE TABLE fruits(id INT,name TEXT,count INT);
-CREATE TABLE
-backup=#</pre>
-
-<p>Вставим несколько записей:</p>
-
-<pre>backup=# INSERT INTO fruits(id,name,count) VALUES(1,'apple',7);
-INSERT 0 1
-backup=# INSERT INTO fruits(id,name,count) VALUES(2,'pear',3);
-INSERT 0 1
-backup=# INSERT INTO fruits(id,name,count) VALUES(3,'banana',2);
-INSERT 0 1
-backup=#</pre>
-
-<p>Проверим на сервере backup. <br />
-Выводим список баз:</p>
-
-<pre>postgres=# <b>\l</b>
-                                  List of databases
-   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileg
-es
------------+----------+----------+-------------+-------------+------------------
------
- <b>backup</b>    | <b>postgres</b> | <b>UTF8</b>     | <b>en_US.UTF-8</b> | <b>en_US.UTF-8</b> |
- postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- replica   | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
-    +
-           |          |          |             |             | postgres=CTc/post
-gres
- template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres
-    +
-           |          |          |             |             | postgres=CTc/post
-gres
-(5 rows)
-
-postgres=#</pre>
-
-<p>Подключимся к базе данных backup:</p>
-
-<pre>postgres=# <b>\c backup</b>
-You are now connected to database "backup" as user "postgres".
-backup=#</pre>
-
-<p>Выводим таблицу backup:</p>
-
-<pre>backup=# <b>SELECT * FROM fruits;</b>
- id |  name  | count
-----+--------+-------
-  1 | apple  |     7
-  2 | pear   |     3
-  3 | banana |     2
-(3 rows)
-
-backup=#</pre>
-
-<p>Создаём директорий /backup для резервного копирования БД postgresql:</p>
-
-<pre>[root@backup ~]# mkdir /backup
-[root@backup ~]# chown -R postgres: /backup/
-[root@backup ~]# ls -ld /backup/
-drwxr-xr-x. 2 postgres postgres 6 Nov  9 10:09 /backup/
+<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create > /backup/backup.sql
+could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
-<p>Скопируем данные таблицы fruits в csv файл:</p>
-
-<pre>backup=# COPY fruits TO '/backup/fruits.csv' CSV HEADER;
-COPY 3
-backup=#</pre>
-
-<pre>[root@backup ~]# ls -l /backup/fruits.csv
--rw-r--r--. 1 postgres postgres 44 Nov  9 12:49 /backup/fruits.csv
+<pre>[root@backup ~]# ls -l /backup/backup.sql 
+-rw-r--r--. 1 root root 1852 Nov  9 19:42 /backup/backup.sql
 [root@backup ~]#</pre>
 
-<p>Содержимое файла fruits.csv:</p>
-
-<pre>[root@backup ~]# cat /backup/fruits.csv
-id,name,count
-1,apple,7
-2,pear,3
-3,banana,2
+<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create | gzip > /backup/backup.gz
+could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
-<p>Для восстановления таблицы из csv файла нужно ОБЯЗАТЕЛЬНО создать новую таблицу. <br />
-В нашем случае создадим таблицу fruits2. Создавать будем на сервере master, предварительно переместив csv файл:</p>
+<pre>[root@backup ~]# ls -l /backup/backup.gz 
+-rw-r--r--. 1 root root 615 Nov  9 19:45 /backup/backup.gz
+[root@backup ~]#</pre>
 
-<pre>backup=# CREATE TABLE fruits2(id INT,name TEXT,count INT);
-CREATE TABLE
-backup=#</pre>
+<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup -Fc > /backup/custom.gz
+could not change directory to "/root": Permission denied
+[root@backup ~]#</pre>
 
-<p>Загрузим в эту таблицу данные из csv файла fruits.csv:</p>
+<pre>[root@backup ~]# ls -l /backup/custom.gz 
+-rw-r--r--. 1 root root 1764 Nov  9 19:49 /backup/custom.gz
+[root@backup ~]#</pre>
 
-<pre></pre>
+<pre>[root@backup ~]# cat /backup/backup.sql 
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 14.5
+-- Dumped by pg_dump version 14.5
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: backup; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE backup WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.UTF-8';
+
+
+ALTER DATABASE backup OWNER TO postgres;
+
+\connect backup
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: fruits; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fruits (
+    id integer,
+    name text,
+    count integer
+);
+
+
+ALTER TABLE public.fruits OWNER TO postgres;
+
+--
+-- Name: fruits2; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fruits2 (
+    id integer,
+    name text,
+    count integer
+);
+
+
+ALTER TABLE public.fruits2 OWNER TO postgres;
+
+--
+-- Data for Name: fruits; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.fruits (id, name, count) FROM stdin;
+1	apple	7
+2	pear	3
+3	banana	2
+\.
+
+
+--
+-- Data for Name: fruits2; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.fruits2 (id, name, count) FROM stdin;
+1	apple	7
+2	pear	3
+3	banana	2
+\.
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+[root@backup ~]#</pre>
+
+<pre>[root@backup ~]# cat /backup/custom.gz 
+PGDMP1	
+zbackup14.514.s
+                  0ENCODINENCODINGSET client_encoding = 'UTF8';
+falset
+                     00
+STDSTRINGS
+STDSTRINGS(SET standard_conforming_strings = 'on';
+falseu
+                     00
+SEARCHPATH
+SEARCHPATH8SELECT pg_catalog.set_config('search_path', '', false);
+falsev
+                     126216390backuDATABASE[CREATE DATABASE backup WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.UTF-8';
+DROP DATABASE backup;
+postgresfalse�125916391fruitsTABLEQCREATE TABLE public.fruits (
+    id integer,
+    name text,
+    count integer
+);
+DROP TABLE public.fruits;
+publicheapostgresfalse�125916396fruits2TABLERCREATE TABLE public.fruits2 (
+    id integer,
+    name text,
+    count integer
+);
+
+ROP TABLE public.fruits2;
+publicheapostgresfalseo
+                              016391fruits
+TABLE DATA1COPY public.fruits (id, name, count) FROM stdin;
+publicpostgresfalse209rp
+                                 016396fruits2
+TABLE DATA2COPY public.fruits2 (id, name, count) FROM stdin;
+publicpostgresfalse210�o
+                                  )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�Jp
+                                                                           )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�J[root@backup ~]#</pre>
+
+
+
+
+
 
 
 
