@@ -1152,6 +1152,179 @@ TABLE DATA2COPY public.fruits2 (id, name, count) FROM stdin;
                                   )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�Jp
                                                                            )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�J[root@backup ~]#</pre>
 
+<p>Теперь будем пытаться восстанавливать эти базы.</p>
+
+<p>backup.sql</p>
+
+<pre>[root@master ~]# sudo -u postgres psql -c "DROP DATABASE backup;"
+could not change directory to "/root": Permission denied
+DROP DATABASE
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres psql < /backup/backup.sql 
+could not change directory to "/root": Permission denied
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE DATABASE
+ALTER DATABASE
+You are now connected to database "backup" as user "postgres".
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+COPY 3
+COPY 3
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"
+could not change directory to "/root": Permission denied
+ id |  name  | count 
+----+--------+-------
+  1 | apple  |     7
+  2 | pear   |     3
+  3 | banana |     2
+(3 rows)
+
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres psql -c "DROP DATABASE backup;"
+could not change directory to "/root": Permission denied
+DROP DATABASE
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres psql -c "CREATE DATABASE backup;"
+could not change directory to "/root": Permission denied
+CREATE DATABASE
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres pg_restore /backup/custom.gz -d backup 
+could not change directory to "/root": Permission denied
+[root@master ~]#</pre>
+
+<pre>[root@master ~]# sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"
+could not change directory to "/root": Permission denied
+ id |  name  | count 
+----+--------+-------
+  1 | apple  |     7
+  2 | pear   |     3
+  3 | banana |     2
+(3 rows)
+
+[root@master ~]#</pre>
+
+### Создать systemd:
+### - pg_backup.service
+### - pg_backup.timer
+### - pg_backup.sh
+
+vi pg_backup.sh
+Вариант 1. Запуск от пользователя root; одна база.
+
+#!/bin/sh
+PATH=/etc:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+
+PGPASSWORD=password
+export PGPASSWORD
+pathB=/backup
+dbUser=dbuser
+database=db
+
+find $pathB \( -name "*-1[^5].*" -o -name "*-[023]?.*" \) -ctime +61 -delete
+pg_dump -U $dbUser $database | gzip > $pathB/pgsql_$(date "+%Y-%m-%d").sql.gz
+
+unset PGPASSWORD
+
+* где password — пароль для подключения к postgresql; /backup — каталог, в котором будут храниться резервные копии; dbuser — имя учетной записи для подключения к БУБД; pathB — путь до каталога, где будут храниться резервные копии.
+* данный скрипт сначала удалит все резервные копии, старше 61 дня, но оставит от 15-о числа как длительный архив. После при помощи утилиты pg_dump будет выполнено подключение и резервирование базы db. Пароль экспортируется в системную переменную на момент выполнения задачи.
+
+Для запуска резервного копирования по расписанию, сохраняем скрипт в файл, например, /scripts/postgresql_dump.sh и создаем задание в планировщике:
+
+crontab -e
+
+3 0 * * * /scripts/postgresql_dump.sh
+
+* наш скрипт будет запускаться каждый день в 03:00.
+
+Вариант 2. Запуск от пользователя postgres; все базы.
+
+#!/bin/bash
+PATH=/etc:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+
+pathB=/backup/postgres
+
+find $pathB \( -name "*-1[^5].*" -o -name "*-[023]?.*" \) -ctime +61 -delete
+
+for dbname in `echo "SELECT datname FROM pg_database;" | psql | tail -n +3 | head -n -2 | egrep -v 'template0|template1|postgres'`; do
+    pg_dump $dbname | gzip > $pathB/$dbname-$(date "+%Y-%m-%d").sql.gz
+done;
+
+* где /backup — каталог, в котором будут храниться резервные копии; pathB — путь до каталога, где будут храниться резервные копии.
+* данный скрипт сначала удалит все резервные копии, старше 61 дня, но оставит от 15-о числа как длительный архив. После найдет все созданные в СУБД базы, кроме служебных и при помощи утилиты pg_dump будет выполнено резервирование каждой найденной базы. Пароль нам не нужен, так как по умолчанию, пользователь postgres имеет возможность подключаться к базе без пароля.
+
+Необходимо убедиться, что у пользователя postgre будет разрешение на запись в каталог назначения, в нашем примере, /backup/postgres.
+
+Зададим в качестве владельца файла, пользователя postgres:
+
+chown postgres:postgres /scripts/postgresql_dump.sh
+
+Для запуска резервного копирования по расписанию, сохраняем скрипт в файл, например, /scripts/postgresql_dump.sh и создаем задание в планировщике:
+
+crontab -e -u postgres
+
+* мы откроем на редактирование cron для пользователя postgres.
+
+3 0 * * * /scripts/postgresql_dump.sh
+
+* наш скрипт будет запускаться каждый день в 03:00.
+
+Права и запуск
+
+Разрешаем запуск скрипта, как исполняемого файла:
+
+chmod +x /scripts/postgresql_dump.sh
+
+Единоразово можно запустить задание на выполнение резервной копии:
+
+/scripts/postgresql_dump.sh
+
+... или от пользователя postgres:
+
+su - postgres -c "/scripts/postgresql_dump.sh"
+
+На удаленном сервере
+Если сервер баз данных находится на другом сервере, просто добавляем опцию -h:
+
+pg_dump -h 192.168.0.15 users > /tmp/users.dump
+
+* необходимо убедиться, что сама СУБД разрешает удаленное подключение. Подробнее читайте инструкцию Как настроить удаленное подключение к PostgreSQL.
 
 
 
