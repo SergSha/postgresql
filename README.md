@@ -931,7 +931,7 @@ backup=#</pre>
 [vagrant@backup ~]$ <b>sudo -i</b>
 [root@backup ~]#</pre>
 
-<p>Также, как и на серверах master и replica, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
+<p>Также, как и на серверах <i>master</i> и <i>replica</i>, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
 
 <pre>[root@backup ~]# <b>yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm</b></pre>
 
@@ -946,7 +946,7 @@ Retype new password:
 passwd: all authentication tokens updated successfully.
 [root@backup ~]#</pre>
 
-<p>Сначала также как и на сервере <i>replica</i> настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу master.</p>
+<p>Сначала также как и на сервере <i>replica</i> настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу <i>master</i>.</p>
 
 <p>Удалим директорий <i>postgresql</i>:</p>
 
@@ -989,7 +989,7 @@ Nov 09 09:31:52 backup systemd[1]: Started PostgreSQL 14 database server.
 Hint: Some lines were ellipsized, use -l to show in full.
 [root@backup ~]#</pre>
 
-
+<p>Архивируем базу <i>backup</i> с сервера <i>master</i>:</p>
 
 <pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create > /backup/backup.sql</b>
 could not change directory to "/root": Permission denied
@@ -999,6 +999,8 @@ could not change directory to "/root": Permission denied
 -rw-r--r--. 1 root root 1852 Nov  9 19:42 /backup/backup.sql
 [root@backup ~]#</pre>
 
+<p>Можно архивировать в сжатый формат:</p>
+
 <pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create | gzip > /backup/backup.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
@@ -1007,6 +1009,8 @@ could not change directory to "/root": Permission denied
 -rw-r--r--. 1 root root 615 Nov  9 19:45 /backup/backup.gz
 [root@backup ~]#</pre>
 
+<p>В кастомный сжатый формат:</p>
+
 <pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup -Fc > /backup/custom.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
@@ -1014,6 +1018,8 @@ could not change directory to "/root": Permission denied
 <pre>[root@backup ~]# <b>ls -l /backup/custom.gz</b>
 -rw-r--r--. 1 root root 1764 Nov  9 19:49 /backup/custom.gz
 [root@backup ~]#</pre>
+
+<p>Содержимое архива <i>backup.sql</i>:</p>
 
 <pre>[root@backup ~]# <b>cat /backup/backup.sql</b>
 --
@@ -1114,6 +1120,8 @@ COPY public.fruits2 (id, name, count) FROM stdin;
 
 [root@backup ~]#</pre>
 
+<p>Содержимое кастомного сжатого архива <i>custom.gz</i>:</p>
+
 <pre>[root@backup ~]# <b>cat /backup/custom.gz</b>
 PGDMP1	
 zbackup14.514.s
@@ -1154,7 +1162,7 @@ TABLE DATA2COPY public.fruits2 (id, name, count) FROM stdin;
 
 <p>Теперь будем пытаться восстанавливать эти базы.</p>
 
-<p>backup.sql</p>
+<p>Из архива <i>backup.sql</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql -c "DROP DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
@@ -1204,6 +1212,8 @@ COPY 3
 COPY 3
 [root@master ~]#</pre>
 
+<p>Смотрим полученный результат, полученный восстановлением из архива <i>backup.sql</i>:</p>
+
 <pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
  id |  name  | count 
@@ -1214,20 +1224,29 @@ could not change directory to "/root": Permission denied
 (3 rows)
 
 [root@master ~]#</pre>
+
+<p>Из кастомного архива <i>custom.gz</i>: <br />
+сначала нужно удалить базу <i>backup</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql -c "DROP DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
 DROP DATABASE
 [root@master ~]#</pre>
 
+<p>Затем снова создать пустую базу <i>backup</i>:</p>
+
 <pre>[root@master ~]# <b>sudo -u postgres psql -c "CREATE DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
 CREATE DATABASE
 [root@master ~]#</pre>
 
+<p>Теперь в эту базу <i>backup</i> загрузить данные из архива <i>custom.gz</i>:</p>
+
 <pre>[root@master ~]# <b>sudo -u postgres pg_restore /backup/custom.gz -d backup</b>
 could not change directory to "/root": Permission denied
 [root@master ~]#</pre>
+
+<p>Смотрим полученный результат, полученный восстановлением из кастомного сжатого архива <i>custom.gz</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
@@ -1240,10 +1259,72 @@ could not change directory to "/root": Permission denied
 
 [root@master ~]#</pre>
 
+
+
+
+
+<h4>Автоматическое резервное копирование</h4>
+
 ### Создать systemd:
 ### - pg_backup.service
 ### - pg_backup.timer
 ### - pg_backup.sh
+
+
+---
+# /etc/systemd/system/borg-backup.service
+
+[Unit]
+Description=Borg Backup
+
+[Service]
+Type=oneshot
+
+# Passphrase
+Environment=BORG_PASSPHRASE=Otus1234
+
+# Repository
+Environment=BORG_REPO=borg@{{ backup_ip_addr }}:/var/backup/
+
+# Object for backuping
+Environment=BACKUP_TARGET=/etc
+
+# Create backup
+ExecStart=/bin/borg create \
+--stats \
+${BORG_REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
+
+# Check backup
+ExecStart=/bin/borg check ${BORG_REPO}
+
+# Clear old backup
+ExecStart=/bin/borg prune \
+--keep-daily 90 \
+--keep-monthly 12 \
+--keep-yearly 1 \
+${BORG_REPO}
+
+# Log to borg-backup.log
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=borg-backup
+---
+
+---
+# /etc/systemd/system/borg-backup.timer
+
+[Unit]
+Description=Borg Backup
+Requires=borg-backup.service
+
+[Timer]
+#Unit==borg-backup.service
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+---
+
 
 vi pg_backup.sh
 Вариант 1. Запуск от пользователя root; одна база.

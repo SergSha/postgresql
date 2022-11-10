@@ -1,0 +1,12 @@
+# /etc/systemd/system/bg-backup.timer
+
+[Unit]
+Description=PostgreSQL Backup
+Requires=bg-backup.service
+
+[Timer]
+#Unit==bg-backup.service
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
