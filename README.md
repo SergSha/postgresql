@@ -1222,7 +1222,9 @@ could not change directory to "/root": Permission denied
 
 <h4>Автоматическое резервное копирование</h4>
 
-<p>Для автоматического резервного копирования создадим скрипт:</p>
+<p>Для автоматического резервного копирования создадим скрипт <i>pg-backup.sh</i>:</p>
+
+<pre>[root@backup ~]# <b>vi /usr/local/bin/pg-backup.sh</b></pre>
 
 <pre>#!/bin/bash
 
@@ -1245,6 +1247,8 @@ done;</pre>
 <p>Чтобы скрипт резервного копирования запускался по расписанию, создадим ещё два systemd файла: <br />
 - <i>pg-backup.service</i>:</p>
 
+<pre>[root@backup ~]# <b>vi /etc/systemd/system/pg-backup.service</b></pre>
+
 <pre># /etc/systemd/system/pg-backup.service
 
 [Unit]
@@ -1262,6 +1266,8 @@ StandardError=syslog
 SyslogIdentifier=pg-backup</pre>
 
 <p>- <i>pg-backup.timer</i>:</p>
+
+<pre>[root@backup ~]# <b>vi /etc/systemd/system/pg-backup.timer</b></pre>
 
 <pre># /etc/systemd/system/pg-backup.timer
 
