@@ -89,7 +89,7 @@ VM, run `vagrant status NAME`.
 
 <h4>Сервер master</h4>
 
-<p>Подключаемся по ssh к серверу master и зайдём с правами root:</p>
+<p>Подключаемся по ssh к серверу <i>master</i> и зайдём с правами <i>root</i>:</p>
 
 <pre>[user@localhost postgresql]$ <b>vagrant ssh master</b>
 [vagrant@master ~]$ <b>sudo -i</b>
@@ -168,7 +168,7 @@ Nov 06 10:49:43 master systemd[1]: Started PostgreSQL 14 database server.
 Hint: Some lines were ellipsized, use -l to show in full.
 [root@master ~]#</pre>
 
-<p>Задаем пароль для пользователя postgres:</p>
+<p>Задаем пароль для пользователя <i>postgres</i>:</p>
 
 <pre>[root@master ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
@@ -215,7 +215,7 @@ postgres=#</pre>
 logout
 [root@master ~]#</pre>
 
-<p>Снова подключаемся к базе под пользователем postgres:</p>
+<p>Снова подключаемся к базе под пользователем <i>postgres</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql</b>
 could not change directory to "/root": Permission denied
@@ -245,7 +245,7 @@ lsn | write_lag | flush_lag | replay_lag | sync_priority | sync_state | reply_ti
 
 postgres=#</pre>
 
-<p>Создадим базу replica:</p>
+<p>Создадим базу <i>replica</i>:</p>
 
 <pre>postgres=# <b>create database replica;</b>
 CREATE DATABASE
@@ -267,7 +267,7 @@ postgres=#</pre>
 
 postgres=#</pre>
 
-<p>Чтобы подключиться к базе replica:</p>
+<p>Чтобы подключиться к базе <i>replica</i>:</p>
 
 <pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
@@ -276,7 +276,7 @@ replica=# \q
 
 
 <p>По умолчанию, сервер баз данных postresql разрешает подключение только с локального компьютера.<br />
-Для начала посмотрим путь расположения конфигурационного файла postgresql.conf:</p>
+Для начала посмотрим путь расположения конфигурационного файла <i>postgresql.conf</i>:</p>
 
 <pre>[root@master ~]# <b>su - postgres -c "psql -c 'SHOW config_file;'"</b>
               config_file               
@@ -286,7 +286,7 @@ replica=# \q
 
 [root@master ~]#</pre>
 
-<p>Открываем на редактирование основной файл конфигурации postgresql.conf:</p>
+<p>Открываем на редактирование основной файл конфигурации <i>postgresql.conf</i>:</p>
 
 <pre>[root@master ~]# <b>vi /var/lib/pgsql/14/data/postgresql.conf</b></pre>
 
@@ -298,7 +298,7 @@ replica=# \q
 
 <pre>listen_addresses = '*'</pre>
 
-<p>Открываем на редактирование следующий конфигурационный файл pg_hba.conf:</p>
+<p>Открываем на редактирование следующий конфигурационный файл <i>pg_hba.conf</i>:</p>
 
 <pre>[root@master ~]# <b>vi /var/lib/pgsql/14/data/pg_hba.conf</b></pre>
 
@@ -339,7 +339,7 @@ host    replication     all             ::1/128                 scram-sha-256</p
 <pre>[root@master ~]# <b>systemctl restart postgresql-14</b>
 [root@master ~]#</pre>
 
-<p>Задаем пароль для пользователя postgres:</p>
+<p>Задаем пароль для пользователя <i>postgres</i>:</p>
 
 <pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
@@ -398,7 +398,7 @@ gres
 
 postgres=#</pre>
 
-<p>Создадим базу данных replica:</p>
+<p>Создадим базу данных <i>replica</i>:</p>
 
 <pre>postgres=# <b>CREATE DATABASE replica;</b>
 CREATE DATABASE
@@ -426,14 +426,14 @@ gres
 
 postgres=#</pre>
 
-<p>Как мы видим, что добавилась новая база данных replica.<br />
-Подключимся к созданной базе replica:</p>
+<p>Как мы видим, что добавилась новая база данных <i>replica</i>.<br />
+Подключимся к созданной базе <i>replica</i>:</p>
 
 <pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
-<p>Создадим таблицу cars с полями id и name:</p>
+<p>Создадим таблицу <i>cars</i> с полями <i>id</i> и <i>name</i>:</p>
 
 <pre>replica=# replica=# <b>CREATE TABLE cars (id INT,name VARCHAR);</b>
 CREATE TABLE
@@ -445,7 +445,7 @@ replica=#</pre>
 INSERT 0 1
 replica=#</pre>
 
-<p>Убедимся, что в таблице cars появилась новая запись:</p>
+<p>Убедимся, что в таблице <i>cars</i> появилась новая запись:</p>
 
 <pre>replica=# <b>SELECT * FROM cars;</b>
  id | name 
@@ -459,19 +459,19 @@ replica=#</pre>
 
 <h4>Сервер replica</h4>
 
-<p>В отдельном окне терминала подключимся к серверу replica и зайдём под пользователем root:</p>
+<p>В отдельном окне терминала подключимся к серверу <i>replica</i> и зайдём под пользователем <i>root</i>:</p>
 
 <pre>[user@localhost postgresql]$ <b>vagrant ssh replica</b>
 [vagrant@replica ~]$ <b>sudo -i</b>
 [root@replica ~]#</pre>
 
-<p>Также, как и на сервере master, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
+<p>Также, как и на сервере <i>master</i>, подключим репозиторий PostreSQL последней версии и установим пакет postgreSQL:</p>
 
 <pre>[root@replica ~]# <b>yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm</b></pre>
 
 <pre>[root@replica ~]# <b>yum install -y postgresql14-server</b></pre>
 
-<p>Задаем пароль для пользователя postgres:</p>
+<p>Задаем пароль для пользователя <i>postgres</i>:</p>
 
 <pre>[root@replica ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
@@ -484,7 +484,7 @@ passwd: all authentication tokens updated successfully.
 
 <pre>[root@replica ~]# <b>rm -rf /var/lib/pgsql/14/data/</b></pre>
 
-<p>Подключаемся к базе данных на сервере master:</p>
+<p>Подключаемся к базе данных на сервере <i>master</i>:</p>
 
 <pre>[root@replica ~]# <b>sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W</b>
 could not change directory to "/root": Permission denied
@@ -555,13 +555,13 @@ gres
 
 postgres=#</pre>
 
-<p>Подключаемся к базе данных replica:</p>
+<p>Подключаемся к базе данных <i>replica</i>:</p>
 
 <pre>postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
-<p>Выводим данные из таблицы cars:</p>
+<p>Выводим данные из таблицы <i>cars</i>:</p>
 
 <pre>replica=# <b>SELECT * FROM cars;</b>
  id | name 
@@ -624,7 +624,7 @@ replica=#</pre>
 <pre>[root@master ~]# <b>systemctl restart postgresql-14</b>
 [root@master ~]#</pre>
 
-<p>Снова подключимся к базе данных replica:</p>
+<p>Снова подключимся к базе данных <i>replica</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql</b>
 could not change directory to "/root": Permission denied
@@ -651,7 +651,7 @@ replica=#</pre>
 
 <p>Смотрим, что получилось:</p>
 
-<pre>replica=# <b>select * from pg_publication;</b>
+<pre>replica=# <b>SELECT * FROM pg_publication;</b>
   oid  |  pubname   | pubowner | puballtables | pubinsert | pubupdate | pubdelet
 e | pubtruncate | pubviaroot
 -------+------------+----------+--------------+-----------+-----------+---------
@@ -662,7 +662,7 @@ e | pubtruncate | pubviaroot
 
 replica=#</pre>
 
-<pre>replica=# <b>select * from pg_publication_tables;<b>
+<pre>replica=# <b>SELECT * FROM pg_publication_tables;</b>
   pubname   | schemaname | tablename
 ------------+------------+-----------
  cities_pub | public     | cities
