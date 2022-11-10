@@ -696,13 +696,13 @@ server promoted
 <p>Создадим подписку к базе данных по порту, пользователю и паролю:</p>
 
 <pre>replica=# <b>CREATE SUBSCRIPTION cities_sub</b>
-replica-# CONNECTION 'host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica'
-replica-# PUBLICATION cities_pub;
+replica-# <b>CONNECTION 'host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica'</b>
+replica-# <b>PUBLICATION cities_pub;</b>
 NOTICE:  created replication slot "cities_sub" on publisher
 CREATE SUBSCRIPTION
 replica=#</pre>
 
-<pre>replica=# <b>SELECT * FROM PG_REPLICATION_SLOTS;</b>
+<pre>replica=# <b>SELECT * FROM pg_replication_slots;</b>
  slot_name | plugin | slot_type | datoid | database | temporary | active | activ
 e_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn | wal_status | s
 afe_wal_size | two_phase
@@ -713,7 +713,7 @@ afe_wal_size | two_phase
 
 replica=#</pre>
 
-<pre>replica=# <b>SELECT * FROM PG_SUBSCRIPTION;</b>
+<pre>replica=# <b>SELECT * FROM pg_subscription;</b>
   oid  | subdbid |  subname   | subowner | subenabled | subbinary | substream |
                                   subconninfo
  | subslotname | subsynccommit | subpublications
@@ -737,7 +737,7 @@ replica=#</pre>
 
 replica=#</pre>
 
-<pre>replica=# <b>SELECT * FROM PG_STAT_SUBSCRIPTION;</b>
+<pre>replica=# <b>SELECT * FROM pg_stat_subscription;</b>
  subid |  subname   |  pid  | relid | received_lsn |      last_msg_send_time
    |     last_msg_receipt_time     | latest_end_lsn |        latest_end_time
 
@@ -753,7 +753,7 @@ replica=#</pre>
 
 <p>Попробуем на сервере <i>master</i> добавить ещё одну запись в таблицу <i>cities</i>:</p>
 
-<pre>replica=# <b>INSERT INTO cities(id,name) Values(2,'Madrid');</b>
+<pre>replica=# <b>INSERT INTO cities(id,name) VALUES(2,'Madrid');</b>
 INSERT 0 1
 replica=#</pre>
 
@@ -772,9 +772,9 @@ replica=#</pre>
 
 <p>Чтобы отменить логическую репликацию, на сервере <i>master</i> нужно выполнить следующие команды:</p>
 
-<pre><b>DROP PUBLICATION cities_pub;<b></pre>
+<pre><b>DROP PUBLICATION cities_pub;</b></pre>
 
-<pre><b>vi /var/lib/pgsql/14/data/postgresql.conf<b>
+<pre><b>vi /var/lib/pgsql/14/data/postgresql.conf</b>
 #wal_level = replica                     # minimal, replica, or logical</pre>
 
 
