@@ -296,7 +296,7 @@ replica=# \q
 
 <p>на:</p>
 
-<pre>listen_addresses = '192.168.50.10'</pre>
+<pre>listen_addresses = '*'</pre>
 
 <p>Открываем на редактирование следующий конфигурационный файл pg_hba.conf:</p>
 
@@ -325,13 +325,13 @@ host    replication     all             ::1/128                 scram-sha-256</p
 # "local" is for Unix domain socket connections only
 local   all             all                                     peer
 # IPv4 local connections:
-<b>host    all             all             192.168.50.11/32        scram-sha-256</b>
+<b>host    all             all             192.168.50.0/24        scram-sha-256</b>
 # IPv6 local connections:
 host    all             all             ::1/128                 scram-sha-256
 # Allow replication connections from localhost, by a user with the
 # replication privilege.
 local   replication     all                                     peer
-<b>host    replication     all             192.168.50.11/32        scram-sha-256</b>
+<b>host    replication     all             192.168.50.0/24        scram-sha-256</b>
 host    replication     all             ::1/128                 scram-sha-256</pre>
 
 <p>Перезапускаем сервис postgresql:</p>
@@ -364,7 +364,7 @@ postgres=#</pre>
 
 <p>Смотрим слот репликации:</p>
 
-<pre>postgres=# <b>select * from pg_stat_replication;</b>
+<pre>postgres=# <b>SELECT * FROM pg_stat_replication;</b>
  pid | usesysid | usename | application_name | client_addr | client_hostname | client_p
 ort | backend_start | backend_xmin | state | sent_lsn | write_lsn | flush_lsn | replay_
 lsn | write_lag | flush_lag | replay_lag | sync_priority | sync_state | reply_time 
@@ -400,7 +400,7 @@ postgres=#</pre>
 
 <p>Создадим базу данных replica:</p>
 
-<pre>postgres=# <b>create database replica;</b>
+<pre>postgres=# <b>CREATE DATABASE replica;</b>
 CREATE DATABASE
 postgres=#</pre>
 
@@ -435,19 +435,19 @@ replica=#</pre>
 
 <p>Создадим таблицу cars с полями id и name:</p>
 
-<pre>replica=# <b>replica=# create table cars (id int,name varchar);</b>
+<pre>replica=# replica=# <b>CREATE TABLE cars (id INT,name VARCHAR);</b>
 CREATE TABLE
 replica=#</pre>
 
 <p>В эту таблицу добавим запись:</p>
 
-<pre>replica=# <b>insert into cars(id,name) values(1,'Niva');</b>
+<pre>replica=# <b>INSERT INTO cars(id,name) VALUES(1,'Niva');</b>
 INSERT 0 1
 replica=#</pre>
 
 <p>Убедимся, что в таблице cars появилась новая запись:</p>
 
-<pre>replica=# <b>select * from cars;</b>
+<pre>replica=# <b>SELECT * FROM cars;</b>
  id | name 
 ----+------
   1 | Niva
@@ -563,7 +563,7 @@ replica=#</pre>
 
 <p>Выводим данные из таблицы cars:</p>
 
-<pre>replica=# <b>select * from cars;</b>
+<pre>replica=# <b>SELECT * FROM cars;</b>
  id | name 
 ----+------
   1 | Niva
@@ -571,9 +571,9 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>На сервере master в таблице cars добавим ещё одну запись:</p>
+<p>На сервере <i>master</i> в таблице <i>cars</i> добавим ещё одну запись:</p>
 
-<pre>replica=# <b>insert into cars(id,name) values(2,'Lada');</b>
+<pre>replica=# <b>INSERT INTO cars(id,name) VALUES(2,'Lada');</b>
 INSERT 0 1
 replica=# <b>select * from cars;</b>
  id | name 
@@ -584,9 +584,9 @@ replica=# <b>select * from cars;</b>
 
 replica=#</pre>
 
-<p>Убедимся, что на сервере replica внеслись изменения:</p>
+<p>Убедимся, что на сервере <i>replica</i> внеслись изменения:</p>
 
-<pre>replica=# <b>select * from cars;</b>
+<pre>replica=# <b>SELECT * FROM cars;</b>
  id | name 
 ----+------
   1 | Niva
@@ -595,21 +595,21 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>Как мы видим, что на сервере replica в таблице cars также появилась вторая запись.</p>
+<p>Как мы видим, что на сервере <i>replica</i> в таблице <i>cars</i> также появилась вторая запись.</p>
 
-<p>Теперь попробуем добавить запись в таблицу cars на самом сервере replica:</p>
+<p>Теперь попробуем добавить запись в таблицу cars на самом сервере <i>replica</i>:</p>
 
 <pre>replica=# <b>INSERT INTO cars(id,name) VALUES(3,'Volga');</b>
 ERROR:  cannot execute INSERT in a read-only transaction
 replica=#</pre>
 
-<p>Как видим, на сервере replica не разрешает запись.</p>
+<p>Как видим, на сервере <i>replica</i> не разрешает запись.</p>
 
 <h4>Логическая репликация</h4>
 
-<p>Перенастроим наш сервер master на логическую репликацию. Для этого в конфиг файле postgesql.conf:</p>
+<p>Перенастроим наш сервер <i>master</i> на логическую репликацию. Для этого в конфиг файле postgesql.conf:</p>
 
-<pre>[root@master ~]# vi /var/lib/pgsql/14/data/postgresql.conf</pre>
+<pre>[root@master ~]# <b>vi /var/lib/pgsql/14/data/postgresql.conf</b></pre>
 
 <p>внесём изменение в строке:</p>
 
@@ -621,29 +621,29 @@ replica=#</pre>
 
 <p>Перезапускаем postgresql сервис:</p>
 
-<pre>[root@master ~]# systemctl restart postgresql-14
+<pre>[root@master ~]# <b>systemctl restart postgresql-14</b>
 [root@master ~]#</pre>
 
 <p>Снова подключимся к базе данных replica:</p>
 
-<pre>[root@master ~]# sudo -u postgres psql
+<pre>[root@master ~]# <b>sudo -u postgres psql</b>
 could not change directory to "/root": Permission denied
 psql (14.5)
 Type "help" for help.
 
-postgres=# \c replica
+postgres=# <b>\c replica</b>
 You are now connected to database "replica" as user "postgres".
 replica=#</pre>
 
-<p>Добавим новую таблицу cities:</p>
+<p>Добавим новую таблицу <i>cities</i>:</p>
 
-<pre>replica=# CREATE TABLE cities(id INT,name VARCHAR);
+<pre>replica=# <b>CREATE TABLE cities(id INT,name VARCHAR);</b>
 CREATE TABLE
 replica=#</pre>
 
-<p>Создаём публикацию для таблицы cities:</p>
+<p>Создаём публикацию для таблицы <i>cities</i>:</p>
 
-<pre>replica=# CREATE PUBLICATION cities_pub FOR TABLE cities;
+<pre>replica=# <b>CREATE PUBLICATION cities_pub FOR TABLE cities;</b>
 WARNING:  wal_level is insufficient to publish logical changes
 HINT:  Set wal_level to logical before creating subscriptions.
 CREATE PUBLICATION
@@ -651,7 +651,7 @@ replica=#</pre>
 
 <p>Смотрим, что получилось:</p>
 
-<pre>replica=# select * from pg_publication;
+<pre>replica=# <b>select * from pg_publication;</b>
   oid  |  pubname   | pubowner | puballtables | pubinsert | pubupdate | pubdelet
 e | pubtruncate | pubviaroot
 -------+------------+----------+--------------+-----------+-----------+---------
@@ -662,7 +662,7 @@ e | pubtruncate | pubviaroot
 
 replica=#</pre>
 
-<pre>replica=# select * from pg_publication_tables;
+<pre>replica=# <b>select * from pg_publication_tables;<b>
   pubname   | schemaname | tablename
 ------------+------------+-----------
  cities_pub | public     | cities
@@ -670,11 +670,11 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>Добавим запись в таблицу cities:</p>
+<p>Добавим запись в таблицу <i>cities</i>:</p>
 
-<pre>replica=# INSERT INTO cities(id,name) VALUES(1,'Moscow');
+<pre>replica=# <b>INSERT INTO cities(id,name) VALUES(1,'Moscow');</b>
 INSERT 0 1
-replica=# SELECT * FROM cities;
+replica=# <b>SELECT * FROM cities;</b>
  id |  name
 ----+--------
   1 | Moscow
@@ -682,27 +682,27 @@ replica=# SELECT * FROM cities;
 
 replica=#</pre>
 
-<p>На сервере replica перезапустим postgresql сервис:</p>
+<p>На сервере <i>replica</i> перезапустим postgresql сервис:</p>
 
-<pre>[root@replica ~]# sudo -u postgres /usr/pgsql-14/bin/pg_ctl -D /var/lib/pgsql/14/data promote
+<pre>[root@replica ~]# <b>sudo -u postgres /usr/pgsql-14/bin/pg_ctl -D /var/lib/pgsql/14/data promote</b>
 could not change directory to "/root": Permission denied
 waiting for server to promote..... done
 server promoted
 [root@replica ~]#</pre>
 
-<pre>[root@replica ~]# systemctl restart postgresql-14
+<pre>[root@replica ~]# <b>systemctl restart postgresql-14</b>
 [root@replica ~]#</pre>
 
 <p>Создадим подписку к базе данных по порту, пользователю и паролю:</p>
 
-<pre>replica=# CREATE SUBSCRIPTION cities_sub
+<pre>replica=# <b>CREATE SUBSCRIPTION cities_sub</b>
 replica-# CONNECTION 'host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica'
 replica-# PUBLICATION cities_pub;
 NOTICE:  created replication slot "cities_sub" on publisher
 CREATE SUBSCRIPTION
 replica=#</pre>
 
-<pre>replica=# SELECT * FROM PG_REPLICATION_SLOTS;
+<pre>replica=# <b>SELECT * FROM PG_REPLICATION_SLOTS;</b>
  slot_name | plugin | slot_type | datoid | database | temporary | active | activ
 e_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn | wal_status | s
 afe_wal_size | two_phase
@@ -713,7 +713,7 @@ afe_wal_size | two_phase
 
 replica=#</pre>
 
-<pre>replica=# SELECT * FROM PG_SUBSCRIPTION;
+<pre>replica=# <b>SELECT * FROM PG_SUBSCRIPTION;</b>
   oid  | subdbid |  subname   | subowner | subenabled | subbinary | substream |
                                   subconninfo
  | subslotname | subsynccommit | subpublications
@@ -727,9 +727,9 @@ host=192.168.50.10 port=5432 user=postgres password=psql@Otus1234 dbname=replica
 
 replica=#</pre>
 
-<p>Смотрим записи в таблице cities:</p>
+<p>Смотрим записи в таблице <i>cities</i>:</p>
 
-<pre>replica=# SELECT * FROM cities;
+<pre>replica=# <b>SELECT * FROM cities;</b>
  id |  name
 ----+--------
   1 | Moscow
@@ -737,7 +737,7 @@ replica=#</pre>
 
 replica=#</pre>
 
-<pre>replica=# SELECT * FROM PG_STAT_SUBSCRIPTION;
+<pre>replica=# <b>SELECT * FROM PG_STAT_SUBSCRIPTION;</b>
  subid |  subname   |  pid  | relid | received_lsn |      last_msg_send_time
    |     last_msg_receipt_time     | latest_end_lsn |        latest_end_time
 
@@ -751,15 +751,15 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>Попробуем на сервере master добавить ещё одну запись в таблицу cities:</p>
+<p>Попробуем на сервере <i>master</i> добавить ещё одну запись в таблицу <i>cities</i>:</p>
 
-<pre>replica=# INSERT INTO cities(id,name) Values(2,'Madrid');
+<pre>replica=# <b>INSERT INTO cities(id,name) Values(2,'Madrid');</b>
 INSERT 0 1
 replica=#</pre>
 
-<p>На сервере replica выводим данные таблицы cities:</p>
+<p>На сервере <i>replica</i> выводим данные таблицы <i>cities</i>:</p>
 
-<pre>replica=# SELECT * FROM cities;
+<pre>replica=# <b>SELECT * FROM cities;</b>
  id |  name
 ----+--------
   1 | Moscow
@@ -768,40 +768,40 @@ replica=#</pre>
 
 replica=#</pre>
 
-<p>Как мы видим, при логической репликации данные на сервере replica также изменяются в соответствии с изменениями на сервере master.</p>
+<p>Как мы видим, при логической репликации данные на сервере <i>replica</i> также изменяются в соответствии с изменениями на сервере <i>master</i>.</p>
 
-<p>Чтобы отменить логическую репликацию, на сервере master нужно выполнить следующие команды:</p>
+<p>Чтобы отменить логическую репликацию, на сервере <i>master</i> нужно выполнить следующие команды:</p>
 
-<pre>DROP PUBLICATION cities_pub;</pre>
+<pre><b>DROP PUBLICATION cities_pub;<b></pre>
 
-<pre>vi /var/lib/pgsql/14/data/postgresql.conf
+<pre><b>vi /var/lib/pgsql/14/data/postgresql.conf<b>
 #wal_level = replica                     # minimal, replica, or logical</pre>
 
 
 
 <h4>Резервное копирование</h4>
 
-<p>Для начала на сервере <b>master</b> создадим директорий /backup для резервного копирования БД postgresql:</p>
+<p>Для начала на сервере <i>master</i> создадим директорий /backup для резервного копирования БД postgresql:</p>
 
-<pre>[root@master ~]# mkdir /backup
-[root@master ~]# chown -R postgres: /backup/
-[root@master ~]# ls -ld /backup/
+<pre>[root@master ~]# <b>mkdir /backup</b>
+[root@master ~]# <b>chown -R postgres: /backup/</b>
+[root@master ~]# <b>ls -ld /backup/</b>
 drwxr-xr-x. 2 postgres postgres 6 Nov  9 10:09 /backup/
 [root@master ~]#</pre>
 
-<p>Затем на сервере же <b>master</b> для теста создадим базу данных backup:</p>
+<p>Затем на сервере же <i>master</i> для теста создадим базу данных <i>backup</i>:</p>
 
-<pre>postgres=# CREATE DATABASE backup;
+<pre>postgres=# <b>CREATE DATABASE backup;</b>
 CREATE DATABASE
 postgres=#</pre>
 
-<p>Подключаемся к базе данных backup:</p>
+<p>Подключаемся к базе данных <i>backup</i>:</p>
 
-<pre>postgres=# \c backup
+<pre>postgres=# <b>\c backup</b>
 You are now connected to database "backup" as user "postgres".
 backup=#</pre>
 
-<pre>backup=# SELECT current_database();
+<pre>backup=# <b>SELECT current_database();</b>
  current_database
 ------------------
  backup
@@ -809,19 +809,19 @@ backup=#</pre>
 
 backup=#</pre>
 
-<p>Создадим таблицу fruits с полями id, name и count:</p>
+<p>Создадим таблицу <i>fruits</i> с полями <i>id</i>, <i>name</i> и <i>count</i>:</p>
 
-<pre>backup=# CREATE TABLE fruits(id INT,name TEXT,count INT);
+<pre>backup=# <b>CREATE TABLE fruits(id INT,name TEXT,count INT);</b>
 CREATE TABLE
 backup=#</pre>
 
 <p>Вставим несколько записей:</p>
 
-<pre>backup=# INSERT INTO fruits(id,name,count) VALUES(1,'apple',7);
+<pre>backup=# <b>INSERT INTO fruits(id,name,count) VALUES(1,'apple',7);</b>
 INSERT 0 1
-backup=# INSERT INTO fruits(id,name,count) VALUES(2,'pear',3);
+backup=# <b>INSERT INTO fruits(id,name,count) VALUES(2,'pear',3);</b>
 INSERT 0 1
-backup=# INSERT INTO fruits(id,name,count) VALUES(3,'banana',2);
+backup=# <b>INSERT INTO fruits(id,name,count) VALUES(3,'banana',2);</b>
 INSERT 0 1
 backup=#</pre>
 
@@ -848,7 +848,7 @@ gres
 
 postgres=#</pre>
 
-<p>Подключимся к базе данных backup:</p>
+<p>Подключимся к базе данных <i>backup</i>:</p>
 
 <pre>postgres=# <b>\c backup</b>
 You are now connected to database "backup" as user "postgres".
@@ -866,21 +866,21 @@ backup=#</pre>
 
 backup=#</pre>
 
-<p>Скопируем данные таблицы fruits в csv файл:</p>
+<p>Скопируем данные таблицы <i>fruits</i> в csv файл:</p>
 
-<pre>backup=# COPY fruits TO '/backup/fruits.csv' CSV HEADER;
+<pre>backup=# <b>COPY fruits TO '/backup/fruits.csv' CSV HEADER;</b>
 COPY 3
 backup=#</pre>
 
-<p>Выгруженный файл fruits.csv:</p>
+<p>Выгруженный файл <i>fruits.csv</i>:</p>
 
-<pre>[root@master ~]# ls -l /backup/fruits.csv
+<pre>[root@master ~]# <b>ls -l /backup/fruits.csv</b>
 -rw-r--r--. 1 postgres postgres 44 Nov  9 12:49 /backup/fruits.csv
 [root@master ~]#</pre>
 
-<p>Содержимое файла fruits.csv:</p>
+<p>Содержимое файла <i>fruits.csv</i>:</p>
 
-<pre>[root@master ~]# cat /backup/fruits.csv
+<pre>[root@master ~]# <b>cat /backup/fruits.csv</b>
 id,name,count
 1,apple,7
 2,pear,3
@@ -888,30 +888,30 @@ id,name,count
 [root@master ~]#</pre>
 
 <p>Для восстановления таблицы из csv файла нужно ОБЯЗАТЕЛЬНО создать новую таблицу. <br />
-В нашем случае создадим таблицу fruits2. Создавать будем на сервере master, предварительно переместив csv файл:</p>
+В нашем случае создадим таблицу <i>fruits2</i>. Создавать будем на сервере <i>master</i>, предварительно переместив csv файл:</p>
 
-<pre>backup=# CREATE TABLE fruits2(id INT,name TEXT,count INT);
+<pre>backup=# <b>CREATE TABLE fruits2(id INT,name TEXT,count INT);</b>
 CREATE TABLE
 backup=#</pre>
 
-<p>Проверим, что создана пустая таблица fruits2:</p>
+<p>Проверим, что создана пустая таблица <i>fruits2</i>:</p>
 
-<pre>backup=# SELECT * FROM fruits2;
+<pre>backup=# <b>SELECT * FROM fruits2;</b>
  id | name | count 
 ----+------+-------
 (0 rows)
 
 backup=#</pre>
 
-<p>Загрузим в эту таблицу данные из csv файла fruits.csv:</p>
+<p>Загрузим в эту таблицу данные из csv файла <i>fruits.csv</i>:</p>
 
-<pre>backup=# COPY fruits2 FROM '/backup/fruits.csv' CSV HEADER;
+<pre>backup=# <b>COPY fruits2 FROM '/backup/fruits.csv' CSV HEADER;</b>
 COPY 3
 backup=#</pre>
 
-<p>Проверим, что в таблицу fruits2 загрузились данные с файла fruits.csv:</p>
+<p>Проверим, что в таблицу <i>fruits2</i> загрузились данные с файла <i>fruits.csv</i>:</p>
 
-<pre>backup=# SELECT * FROM fruits2;
+<pre>backup=# <b>SELECT * FROM fruits2;</b>
  id |  name  | count 
 ----+--------+-------
   1 | apple  |     7
@@ -925,7 +925,7 @@ backup=#</pre>
 
 
 
-<p>В отдельном окне терминала подключимся к серверу backup и зайдём под пользователем root:</p>
+<p>В отдельном окне терминала подключимся к серверу <i>backup</i> и зайдём под пользователем <i>root</i>:</p>
 
 <pre>[user@localhost postgresql]$ <b>vagrant ssh backup</b>
 [vagrant@backup ~]$ <b>sudo -i</b>
@@ -937,7 +937,7 @@ backup=#</pre>
 
 <pre>[root@backup ~]# <b>yum install -y postgresql14-server</b></pre>
 
-<p>Задаем пароль для пользователя postgres:</p>
+<p>Задаем пароль для пользователя <i>postgres</i>:</p>
 
 <pre>[root@backup ~]# <b>passwd postgres</b>             # 'psql@Otus1234'
 Changing password for user postgres.
@@ -946,27 +946,27 @@ Retype new password:
 passwd: all authentication tokens updated successfully.
 [root@backup ~]#</pre>
 
-<p>Сначала также как и на сервере replica настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу master.</p>
+<p>Сначала также как и на сервере <i>replica</i> настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу master.</p>
 
-<p>Удалим директорий postgresql:</p>
+<p>Удалим директорий <i>postgresql</i>:</p>
 
-<pre>[root@backup ~]# rm -rf /var/lib/pgsql/14/data/
+<pre>[root@backup ~]# <b>rm -rf /var/lib/pgsql/14/data/</b>
 [root@backup ~]#</pre>
 
-<p>Подключаемся к базе данных на сервере master:</p>
+<p>Подключаемся к базе данных на сервере <i>master</i>:</p>
 
-<pre>[root@backup ~]# sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W
+<pre>[root@backup ~]# <b>sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W</b>
 could not change directory to "/root": Permission denied
 Password:
 [root@backup ~]#</pre>
 
-<p>Запускаем сервис postresql:</p>
+<p>Запускаем сервис <i>postresql</i>:</p>
 
-<pre>[root@backup ~]# systemctl enable postgresql-14 --now
+<pre>[root@backup ~]# <b>systemctl enable postgresql-14 --now</b>
 Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.service to /usr/lib/systemd/system/postgresql-14.service.
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# systemctl status postgresql-14
+<pre>[root@backup ~]# <b>systemctl status postgresql-14</b>
 ● postgresql-14.service - PostgreSQL 14 database server
    Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
    Active: active (running) since Wed 2022-11-09 09:31:52 UTC; 39s ago
@@ -991,31 +991,31 @@ Hint: Some lines were ellipsized, use -l to show in full.
 
 
 
-<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create > /backup/backup.sql
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create > /backup/backup.sql</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# ls -l /backup/backup.sql 
+<pre>[root@backup ~]# <b>ls -l /backup/backup.sql</b>
 -rw-r--r--. 1 root root 1852 Nov  9 19:42 /backup/backup.sql
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create | gzip > /backup/backup.gz
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create | gzip > /backup/backup.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# ls -l /backup/backup.gz 
+<pre>[root@backup ~]# <b>ls -l /backup/backup.gz</b>
 -rw-r--r--. 1 root root 615 Nov  9 19:45 /backup/backup.gz
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# sudo -u postgres pg_dump -h 192.168.50.10 -d backup -Fc > /backup/custom.gz
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup -Fc > /backup/custom.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# ls -l /backup/custom.gz 
+<pre>[root@backup ~]# <b>ls -l /backup/custom.gz</b>
 -rw-r--r--. 1 root root 1764 Nov  9 19:49 /backup/custom.gz
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# cat /backup/backup.sql 
+<pre>[root@backup ~]# <b>cat /backup/backup.sql</b>
 --
 -- PostgreSQL database dump
 --
@@ -1114,7 +1114,7 @@ COPY public.fruits2 (id, name, count) FROM stdin;
 
 [root@backup ~]#</pre>
 
-<pre>[root@backup ~]# cat /backup/custom.gz 
+<pre>[root@backup ~]# <b>cat /backup/custom.gz</b>
 PGDMP1	
 zbackup14.514.s
                   0ENCODINENCODINGSET client_encoding = 'UTF8';
@@ -1156,12 +1156,12 @@ TABLE DATA2COPY public.fruits2 (id, name, count) FROM stdin;
 
 <p>backup.sql</p>
 
-<pre>[root@master ~]# sudo -u postgres psql -c "DROP DATABASE backup;"
+<pre>[root@master ~]# <b>sudo -u postgres psql -c "DROP DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
 DROP DATABASE
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres psql < /backup/backup.sql 
+<pre>[root@master ~]# <b>sudo -u postgres psql < /backup/backup.sql</b>
 could not change directory to "/root": Permission denied
 SET
 SET
@@ -1204,7 +1204,7 @@ COPY 3
 COPY 3
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"
+<pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
  id |  name  | count 
 ----+--------+-------
@@ -1215,21 +1215,21 @@ could not change directory to "/root": Permission denied
 
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres psql -c "DROP DATABASE backup;"
+<pre>[root@master ~]# <b>sudo -u postgres psql -c "DROP DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
 DROP DATABASE
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres psql -c "CREATE DATABASE backup;"
+<pre>[root@master ~]# <b>sudo -u postgres psql -c "CREATE DATABASE backup;"</b>
 could not change directory to "/root": Permission denied
 CREATE DATABASE
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres pg_restore /backup/custom.gz -d backup 
+<pre>[root@master ~]# <b>sudo -u postgres pg_restore /backup/custom.gz -d backup</b>
 could not change directory to "/root": Permission denied
 [root@master ~]#</pre>
 
-<pre>[root@master ~]# sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"
+<pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
  id |  name  | count 
 ----+--------+-------
