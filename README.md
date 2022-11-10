@@ -946,52 +946,11 @@ Retype new password:
 passwd: all authentication tokens updated successfully.
 [root@backup ~]#</pre>
 
-<p>Сначала также как и на сервере <i>replica</i> настроим репликацию. На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы для упрощения будем подключаться к серверу <i>master</i>.</p>
+<p>На практике для резервного копирования БД обычно подключаются к серверу репликации, чтобы не нагружать главный сервер. Мы будем подключаться к серверу <i>replica</i>.</p>
 
-<p>Удалим директорий <i>postgresql</i>:</p>
+<p>Архивируем базу <i>backup</i> с сервера <i>replica</i>:</p>
 
-<pre>[root@backup ~]# <b>rm -rf /var/lib/pgsql/14/data/</b>
-[root@backup ~]#</pre>
-
-<p>Подключаемся к базе данных на сервере <i>master</i>:</p>
-
-<pre>[root@backup ~]# <b>sudo -u postgres pg_basebackup -h 192.168.50.10 -R -D /var/lib/pgsql/14/data -U postgres -W</b>
-could not change directory to "/root": Permission denied
-Password:
-[root@backup ~]#</pre>
-
-<p>Запускаем сервис <i>postresql</i>:</p>
-
-<pre>[root@backup ~]# <b>systemctl enable postgresql-14 --now</b>
-Created symlink from /etc/systemd/system/multi-user.target.wants/postgresql-14.service to /usr/lib/systemd/system/postgresql-14.service.
-[root@backup ~]#</pre>
-
-<pre>[root@backup ~]# <b>systemctl status postgresql-14</b>
-● postgresql-14.service - PostgreSQL 14 database server
-   Loaded: loaded (/usr/lib/systemd/system/postgresql-14.service; enabled; vendor preset: disabled)
-   Active: active (running) since Wed 2022-11-09 09:31:52 UTC; 39s ago
-     Docs: https://www.postgresql.org/docs/14/static/
-  Process: 22483 ExecStartPre=/usr/pgsql-14/bin/postgresql-14-check-db-dir ${PGDATA} (code=exited, status=0/SUCCESS)
- Main PID: 22488 (postmaster)
-   CGroup: /system.slice/postgresql-14.service
-           ├─22488 /usr/pgsql-14/bin/postmaster -D /var/lib/pgsql/14/data/
-           ├─22490 postgres: logger
-           ├─22491 postgres: startup recovering 000000010000000000000005
-           ├─22492 postgres: checkpointer
-           ├─22493 postgres: background writer
-           ├─22494 postgres: stats collector
-           └─22495 postgres: walreceiver streaming 0/5000060
-
-Nov 09 09:31:50 backup systemd[1]: Starting PostgreSQL 14 database server...
-Nov 09 09:31:50 backup postmaster[22488]: 2022-11-09 09:31:50.370 UTC [22488...s
-Nov 09 09:31:50 backup postmaster[22488]: 2022-11-09 09:31:50.370 UTC [22488....
-Nov 09 09:31:52 backup systemd[1]: Started PostgreSQL 14 database server.
-Hint: Some lines were ellipsized, use -l to show in full.
-[root@backup ~]#</pre>
-
-<p>Архивируем базу <i>backup</i> с сервера <i>master</i>:</p>
-
-<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create > /backup/backup.sql</b>
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.11 -d backup --create > /backup/backup.sql</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
@@ -1001,7 +960,7 @@ could not change directory to "/root": Permission denied
 
 <p>Можно архивировать в сжатый формат:</p>
 
-<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup --create | gzip > /backup/backup.gz</b>
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.11 -d backup --create | gzip > /backup/backup.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
@@ -1011,7 +970,7 @@ could not change directory to "/root": Permission denied
 
 <p>В кастомный сжатый формат:</p>
 
-<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.10 -d backup -Fc > /backup/custom.gz</b>
+<pre>[root@backup ~]# <b>sudo -u postgres pg_dump -h 192.168.50.11 -d backup -Fc > /backup/custom.gz</b>
 could not change directory to "/root": Permission denied
 [root@backup ~]#</pre>
 
@@ -1160,7 +1119,7 @@ TABLE DATA2COPY public.fruits2 (id, name, count) FROM stdin;
                                   )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�Jp
                                                                            )x�3�L,(�I�4�2�,HM,�4�2�LJ�BN#�=...�J[root@backup ~]#</pre>
 
-<p>Теперь будем пытаться восстанавливать эти базы.</p>
+<p>Теперь будем пытаться восстанавливать эти базы на сервере <i>master</i>.</p>
 
 <p>Из архива <i>backup.sql</i>:</p>
 
@@ -1212,7 +1171,7 @@ COPY 3
 COPY 3
 [root@master ~]#</pre>
 
-<p>Смотрим полученный результат, полученный восстановлением из архива <i>backup.sql</i>:</p>
+<p>Смотрим результат, полученный восстановлением из архива <i>backup.sql</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
@@ -1246,7 +1205,7 @@ CREATE DATABASE
 could not change directory to "/root": Permission denied
 [root@master ~]#</pre>
 
-<p>Смотрим полученный результат, полученный восстановлением из кастомного сжатого архива <i>custom.gz</i>:</p>
+<p>Смотрим результат, полученный восстановлением из кастомного сжатого архива <i>custom.gz</i>:</p>
 
 <pre>[root@master ~]# <b>sudo -u postgres psql -d backup -c "SELECT * FROM fruits;"</b>
 could not change directory to "/root": Permission denied
@@ -1261,155 +1220,145 @@ could not change directory to "/root": Permission denied
 
 
 
-
-
 <h4>Автоматическое резервное копирование</h4>
 
-### Создать systemd:
-### - pg_backup.service
-### - pg_backup.timer
-### - pg_backup.sh
+<p>Для автоматического резервного копирования создадим скрипт:</p>
 
+<pre>#!/bin/bash
 
----
-# /etc/systemd/system/borg-backup.service
+# /usr/local/bin/pg-backup.sh
+
+path=/backup
+path_backup=/$path/pg_$(date "+%Y-%m-%d_%H-%M-%S")
+mkdir -p $path_backup
+
+# Clear old backup
+rm -rf $(find $path/* -type d -ctime +31)
+
+# Create backup
+for dbname in $(sudo -u postgres psql -h {{ replica_ip }} -c "SELECT datname FROM pg_database;" | egrep -v 'template0|template1|postgres' | tail -n +3 | head -n -2); do
+    sudo -u postgres pg_dump -h 192.168.50.10 $dbname | gzip > /$path_backup/$dbname.sql.gz
+done;</pre>
+
+<p>Этот скрипт создаёт архивы побазово в директории, в имени которого указывается дата и время, и удаляет архивы старше 31 дня. Логи работы pg-backup будем перенаправлять в отдельный файл /var/log/pg-backup.log.</p>
+
+<p>Чтобы скрипт резервного копирования запускался по расписанию, создадим ещё два systemd файла: <br />
+- <i>pg-backup.service</i>:</p>
+
+<pre># /etc/systemd/system/pg-backup.service
 
 [Unit]
-Description=Borg Backup
+Description=PostgreSQL Backup
 
 [Service]
 Type=oneshot
 
-# Passphrase
-Environment=BORG_PASSPHRASE=Otus1234
-
-# Repository
-Environment=BORG_REPO=borg@{{ backup_ip_addr }}:/var/backup/
-
-# Object for backuping
-Environment=BACKUP_TARGET=/etc
-
 # Create backup
-ExecStart=/bin/borg create \
---stats \
-${BORG_REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
+ExecStart=/usr/local/bin/pg-backup.sh
 
-# Check backup
-ExecStart=/bin/borg check ${BORG_REPO}
-
-# Clear old backup
-ExecStart=/bin/borg prune \
---keep-daily 90 \
---keep-monthly 12 \
---keep-yearly 1 \
-${BORG_REPO}
-
-# Log to borg-backup.log
+# Log to pg-backup.log
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=borg-backup
----
+SyslogIdentifier=pg-backup</pre>
 
----
-# /etc/systemd/system/borg-backup.timer
+<p>- <i>pg-backup.timer</i>:</p>
+
+<pre># /etc/systemd/system/pg-backup.timer
 
 [Unit]
-Description=Borg Backup
-Requires=borg-backup.service
+Description=PostgreSQL Backup
+Requires=pg-backup.service
 
 [Timer]
-#Unit==borg-backup.service
+#Unit==pg-backup.service
 OnUnitActiveSec=5min
 
 [Install]
-WantedBy=timers.target
----
+WantedBy=timers.target</pre>
 
+<p>Резервное копирование БД будет производиться каждые 5 минут в целях демонстрации.</p>
 
-vi pg_backup.sh
-Вариант 1. Запуск от пользователя root; одна база.
+<p>Логи работы pg-backup будем перенаправлять в отдельный файл <i>/var/log/pg-backup.log</i>.<br />
+В /etc/rsyslog.d/ добавим конфиг файл <i>pg-backup.conf</i>:</p>
 
-#!/bin/sh
-PATH=/etc:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+<pre># /etc/rsyslog.d/pg-backup.conf
+if $programname == 'pg-backup' then /var/log/pg-backup.log
+& stop</pre>
 
-PGPASSWORD=password
-export PGPASSWORD
-pathB=/backup
-dbUser=dbuser
-database=db
+<p>Для ротации логов работы pg-backup (pg-backup.log) создадим конфиг файл <i>pg-backup.conf</i> в /etc/logrotate.d:</p>
 
-find $pathB \( -name "*-1[^5].*" -o -name "*-[023]?.*" \) -ctime +61 -delete
-pg_dump -U $dbUser $database | gzip > $pathB/pgsql_$(date "+%Y-%m-%d").sql.gz
+<pre># /etc/logrotate.d/pg-backup.conf
+/var/log/pg-backup.log {
+  rotate 3
+  missingok
+  notifempty
+  compress
+  size 1M
+  daily
+  create 0644 root root
+}</pre>
 
-unset PGPASSWORD
+<p>Перезапускаем rsyslog сервис, включаем и запускаем службу таймера:</p>
 
-* где password — пароль для подключения к postgresql; /backup — каталог, в котором будут храниться резервные копии; dbuser — имя учетной записи для подключения к БУБД; pathB — путь до каталога, где будут храниться резервные копии.
-* данный скрипт сначала удалит все резервные копии, старше 61 дня, но оставит от 15-о числа как длительный архив. После при помощи утилиты pg_dump будет выполнено подключение и резервирование базы db. Пароль экспортируется в системную переменную на момент выполнения задачи.
+<pre>[root@backup ~]# <b>systemctl daemon-reload</b>
+[root@backup ~]# systemctl restart rsyslog
+[root@backup ~]# systemctl enable pg-backup.timer --now
+Created symlink from /etc/systemd/system/timers.target.wants/pg-backup.timer to /etc/systemd/system/pg-backup.timer.
+[root@backup ~]#</pre>
 
-Для запуска резервного копирования по расписанию, сохраняем скрипт в файл, например, /scripts/postgresql_dump.sh и создаем задание в планировщике:
+<p>Проверяем работу таймера:</p>
 
-crontab -e
+<pre>[root@backup ~]# <b>systemctl list-timers --all</b>
+NEXT                         LEFT          LAST                         PASSED       UNIT                         ACTIVATES
+<b>Thu 2022-11-10 20:05:33 UTC  3min 56s left n/a                          n/a          pg-backup.timer              pg-backup.service</b>
+Fri 2022-11-11 18:40:42 UTC  22h left      Thu 2022-11-10 18:40:42 UTC  1h 20min ago systemd-tmpfiles-clean.timer systemd-tmpfiles-clean.service
+n/a                          n/a           n/a                          n/a          systemd-readahead-done.timer systemd-readahead-done.service
 
-3 0 * * * /scripts/postgresql_dump.sh
+3 timers listed.
+[root@backup ~]#</pre>
 
-* наш скрипт будет запускаться каждый день в 03:00.
+<p>Подождём минимум 15 минут и проверим список бекапов:</p>
 
-Вариант 2. Запуск от пользователя postgres; все базы.
+<pre>[root@backup ~]# <b>ls -lR /backup/</b>
+/backup/:
+total 0
+drwxr-xr-x. 2 root root 28 Nov 10 20:00 pg_2022-11-10_20-00-33
+drwxr-xr-x. 2 root root 28 Nov 10 20:06 pg_2022-11-10_20-06-02
+drwxr-xr-x. 2 root root 28 Nov 10 20:12 pg_2022-11-10_20-12-02
 
-#!/bin/bash
-PATH=/etc:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+/backup/pg_2022-11-10_20-00-33:
+total 4
+-rw-r--r--. 1 root root 482 Nov 10 20:00 replica.sql.gz
 
-pathB=/backup/postgres
+/backup/pg_2022-11-10_20-06-02:
+total 4
+-rw-r--r--. 1 root root 482 Nov 10 20:06 replica.sql.gz
 
-find $pathB \( -name "*-1[^5].*" -o -name "*-[023]?.*" \) -ctime +61 -delete
+/backup/pg_2022-11-10_20-12-02:
+total 4
+-rw-r--r--. 1 root root 482 Nov 10 20:12 replica.sql.gz
+[root@backup ~]#</pre>
 
-for dbname in `echo "SELECT datname FROM pg_database;" | psql | tail -n +3 | head -n -2 | egrep -v 'template0|template1|postgres'`; do
-    pg_dump $dbname | gzip > $pathB/$dbname-$(date "+%Y-%m-%d").sql.gz
-done;
-
-* где /backup — каталог, в котором будут храниться резервные копии; pathB — путь до каталога, где будут храниться резервные копии.
-* данный скрипт сначала удалит все резервные копии, старше 61 дня, но оставит от 15-о числа как длительный архив. После найдет все созданные в СУБД базы, кроме служебных и при помощи утилиты pg_dump будет выполнено резервирование каждой найденной базы. Пароль нам не нужен, так как по умолчанию, пользователь postgres имеет возможность подключаться к базе без пароля.
-
-Необходимо убедиться, что у пользователя postgre будет разрешение на запись в каталог назначения, в нашем примере, /backup/postgres.
-
-Зададим в качестве владельца файла, пользователя postgres:
-
-chown postgres:postgres /scripts/postgresql_dump.sh
-
-Для запуска резервного копирования по расписанию, сохраняем скрипт в файл, например, /scripts/postgresql_dump.sh и создаем задание в планировщике:
-
-crontab -e -u postgres
-
-* мы откроем на редактирование cron для пользователя postgres.
-
-3 0 * * * /scripts/postgresql_dump.sh
-
-* наш скрипт будет запускаться каждый день в 03:00.
-
-Права и запуск
-
-Разрешаем запуск скрипта, как исполняемого файла:
-
-chmod +x /scripts/postgresql_dump.sh
-
-Единоразово можно запустить задание на выполнение резервной копии:
-
-/scripts/postgresql_dump.sh
-
-... или от пользователя postgres:
-
-su - postgres -c "/scripts/postgresql_dump.sh"
-
-На удаленном сервере
-Если сервер баз данных находится на другом сервере, просто добавляем опцию -h:
-
-pg_dump -h 192.168.0.15 users > /tmp/users.dump
-
-* необходимо убедиться, что сама СУБД разрешает удаленное подключение. Подробнее читайте инструкцию Как настроить удаленное подключение к PostgreSQL.
+<p>Как мы наблюдаем, резервные копии баз данных создаются примерно каждый 5 минут.</p>
 
 
 
+<h4>Запуск стенда "PostgreSQL Replication and Backup"</h4>
 
+<p>Запустить стенд с помощью следующей команды:</p>
 
+<pre>$ git clone https://github.com/SergSha/postgresql.git && cd ./postgresql/ && vagrant up</pre>
+
+<p>После завершения можно подключиться с помощью ssh либо на главный сервер <i>master</i>:</p>
+
+<pre>$ vagrant ssh master</pre>
+
+<p>либо на сервер репликации <i>replica</i>:</p>
+
+<pre>$ vagrant ssh replica</pre>
+
+<p>либо на сервер резервного копирования <i>backup</i>:</p>
+
+<pre>$ vagrant ssh backup</pre>
 
 

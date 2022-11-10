@@ -9,26 +9,55 @@
     group: postgres
     mode: '0755'
 
-- name: backup | Template backup.sh to /usr/local/bin
+- name: backup | Template backup.sh to /usr/local/bin/
   template:
-    src: backup.sh.j2
-    dest: backup.sh
+    src: pg-backup.sh.j2
+    dest: /usr/local/bin/pg-backup.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: backup | Template backup.service to /etc/systemd/system/
+  template:
+    src: pg-backup.service.j2
+    dest: /etc/systemd/system/pg-backup.service
     owner: root
     group: root
     mode: '0644'
 
-- name: backup | Template backup.service to /etc/systemd/system
+- name: backup | Template backup.timer to /etc/systemd/system/
   template:
-    src: backup.service.j2
-    dest: backup.service
+    src: pg-backup.timer.j2
+    dest: /etc/systemd/system/pg-backup.timer
     owner: root
     group: root
     mode: '0644'
 
-- name: backup | Template backup.timer to /etc/systemd/system
+- name: backup | Template rsyslog-pg-backup.conf to /etc/rsyslog.d/
   template:
-    src: backup.timer.j2
-    dest: backup.timer
+    src: rsyslog-pg-backup.conf.j2
+    dest: /etc/rsyslog.d/pg-backup.conf
     owner: root
     group: root
     mode: '0644'
+
+- name: backup | Template logrotate-pg-backup.conf to /etc/logrotate.d/
+  template:
+    src: logrotate-pg-backup.conf.j2
+    dest: /etc/logrotate.d/pg-backup.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: backup | Restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+    daemon_reload: yes
+
+- name: backup | Enable a timer unit for pg-backup
+  systemd:
+    name: pg-backup.timer
+    state: started
+    enabled: yes
+

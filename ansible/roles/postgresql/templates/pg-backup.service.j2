@@ -9,13 +9,6 @@ Type=oneshot
 # Create backup
 ExecStart=/usr/local/bin/pg-backup.sh
 
-# Clear old backup
-ExecStart=/bin/borg prune \
---keep-daily 90 \
---keep-monthly 12 \
---keep-yearly 1 \
-${BORG_REPO}
-
 # Log to pg-backup.log
 StandardOutput=syslog
 StandardError=syslog

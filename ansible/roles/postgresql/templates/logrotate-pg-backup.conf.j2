@@ -1,0 +1,10 @@
+# /etc/logrotate.d/pg-backup.conf
+/var/log/pg-backup.log {
+  rotate 3
+  missingok
+  notifempty
+  compress
+  size 1M
+  daily
+  create 0644 root root
+}

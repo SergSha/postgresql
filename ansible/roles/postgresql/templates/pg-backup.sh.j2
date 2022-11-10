@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # /usr/local/bin/pg-backup.sh
 
 path=/backup
@@ -9,6 +10,6 @@ mkdir -p $path_backup
 rm -rf $(find $path/* -type d -ctime +31)
 
 # Create backup
-for dbname in `echo "SELECT datname FROM pg_database;" | psql | egrep -v 'template0|template1|postgres'`; do
-    pg_dump -h 192.168.50.10 $dbname | gzip > $pathB/$dbname.sql.gz
+for dbname in $(sudo -u postgres psql -h {{ replica_ip }} -c "SELECT datname FROM pg_database;" | egrep -v 'template0|template1|postgres' | tail -n +3 | head -n -2); do
+    sudo -u postgres pg_dump -h 192.168.50.10 $dbname | gzip > /$path_backup/$dbname.sql.gz
 done;

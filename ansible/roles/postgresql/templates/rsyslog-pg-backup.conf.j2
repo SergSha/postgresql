@@ -1,0 +1,3 @@
+# /etc/rsyslog.d/pg-backup.conf
+if $programname == 'pg-backup' then /var/log/pg-backup.log
+& stop
