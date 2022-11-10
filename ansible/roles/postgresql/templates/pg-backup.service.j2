@@ -6,31 +6,8 @@ Description=PostgreSQL Backup
 [Service]
 Type=oneshot
 
-# Passphrase
-Environment=PG_PASSPHRASE={{ postgres_password }}
-
-# Repository
-Environment=PG_REPO=/var/backup/
-
-# Object for backuping
-Environment=BACKUP_TARGET={{ master_ip }}
-
 # Create backup
-ExecStart=/bin/borg create \
---stats \
-${BORG_REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
-
 ExecStart=/usr/local/bin/pg-backup.sh
-
-for dbname in `echo "SELECT datname FROM pg_database;" | psql | tail -n +3 | head -n -2 | egrep -v 'template0|template1|postgres'`; do
-    pg_dump $dbname | gzip > $pathB/$dbname-$(date "+%Y-%m-%d_%H-%M-%S").sql.gz
-done;
-
-
-
-
-# Check backup
-ExecStart=/bin/borg check ${BORG_REPO}
 
 # Clear old backup
 ExecStart=/bin/borg prune \

@@ -1,10 +1,14 @@
 #!/bin/bash
 # /usr/local/bin/pg-backup.sh
 
-pathB=/backup/postgres
+path=/backup
+path_backup=/$path/pg_$(date "+%Y-%m-%d_%H-%M-%S")
+mkdir -p $path_backup
 
-find $pathB \( -name "*-1[^5].*" -o -name "*-[023]?.*" \) -ctime +61 -delete
+# Clear old backup
+rm -rf $(find $path/* -type d -ctime +31)
 
-for dbname in `echo "SELECT datname FROM pg_database;" | psql | tail -n +3 | head -n -2 | egrep -v 'template0|template1|postgres'`; do
-    pg_dump $dbname | gzip > $pathB/$dbname-$(date "+%Y-%m-%d").sql.gz
+# Create backup
+for dbname in `echo "SELECT datname FROM pg_database;" | psql | egrep -v 'template0|template1|postgres'`; do
+    pg_dump -h 192.168.50.10 $dbname | gzip > $pathB/$dbname.sql.gz
 done;
